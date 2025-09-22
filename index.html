@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SENDIX — Nexo + Chat + Tracking</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <link rel="icon" href="assets/logo.png">
+</head>
+<body>
+  <!-- HEADER full-width con contenedor interno -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <img src="assets/logo.png" class="logo" alt="SENDIX"/>
+        <div>
+          <h1 class="app-name">SENDIX</h1>
+          <p class="tagline">Movemos tu mundo</p>
+        </div>
+      </div>
+      <!-- Badge con el usuario logueado + botón de salir -->
+      <div id="user-badge" class="user-badge"></div>
+    </div>
+  </header>
+
+  <!-- Contenedor principal de la app -->
+  <div id="app">
+    <main id="view-container">
+      <!-- Vista: LOGIN -->
+      <section data-route="login" class="view active">
+        <div class="hero">
+          <h2>Ingresá a SENDIX</h2>
+          <p class="muted">La app que agiliza, resuelve y conecta a empresas con transportistas.</p>
+        </div>
+        <form id="login-form" class="form small" autocomplete="off">
+          <label>Tu nombre
+            <input name="name" placeholder="Ej: Carla / Nexo SENDIX" required/>
+          </label>
+          <fieldset class="roles">
+            <legend>Rol</legend>
+            <label class="radio"><input type="radio" name="role" value="empresa" checked/> Empresa</label>
+            <label class="radio"><input type="radio" name="role" value="transportista"/> Transportista</label>
+            <label class="radio"><input type="radio" name="role" value="sendix"/> SENDIX </label>
+          </fieldset>
+          <button class="btn btn-primary" type="submit">Entrar</button>
+        </form>
+      </section>
+
+      <!-- Vista: HOME -->
+      <section data-route="home" class="view">
+        <div class="hero">
+          <h2>Publicá, postulá o moderá ofertas. Chateá y coordiná cuando haya match.</h2>
+          <p class="muted">Más carga, menos gestion, mas rapido, menos costos.</p>
+          <button class="btn btn-primary" id="btn-start">Empezar</button>
+        </div>
+
+        <!-- Tarjetas EMPRESA -->
+        <div id="cards-empresa" class="cards">
+          <div class="card">
+            <h3>Publicar carga</h3>
+            <button class="btn btn-ghost" data-nav="publicar">Ir</button>
+          </div>
+          <div class="card">
+            <h3>Mis cargas</h3>
+            <button class="btn btn-ghost" data-nav="mis-cargas">Ir</button>
+          </div>
+          <div class="card">
+            <h3>Envío en curso</h3>
+            <p>Ver estado de tus envíos aprobados.</p>
+            <button class="btn btn-ghost" data-nav="tracking">Abrir</button>
+          </div>
+        </div>
+
+        <!-- Tarjetas TRANSPORTISTA -->
+        <div id="cards-transportista" class="cards">
+          <div class="card">
+            <h3>Ofertas disponibles</h3>
+            <button class="btn btn-ghost" data-nav="ofertas">Ver</button>
+          </div>
+          <div class="card">
+            <h3>Mis postulaciones</h3>
+            <button class="btn btn-ghost" data-nav="mis-postulaciones">Ver</button>
+          </div>
+          <div class="card">
+            <h3>Mis envíos</h3>
+            <p>Gestioná estado por cada envío aprobado.</p>
+            <button class="btn btn-ghost" data-nav="mis-envios">Abrir</button>
+          </div>
+          <div class="card">
+            <h3>Envío en curso</h3>
+            <p>Actualizá estado desde acá también.</p>
+            <button class="btn btn-ghost" data-nav="tracking">Abrir</button>
+          </div>
+        </div>
+
+        <!-- Tarjetas SENDIX -->
+        <div id="cards-sendix" class="cards">
+          <div class="card">
+            <h3>Bandeja de propuestas</h3>
+            <p>Filtrar propuestas y derivar a la empresa.</p>
+            <button class="btn btn-ghost" data-nav="moderacion">Abrir</button>
+          </div>
+          <div class="card">
+            <h3>Conversaciones</h3>
+            <p>Acceso rápido a chats aprobados.</p>
+            <button class="btn btn-ghost" data-nav="conversaciones">Abrir</button>
+          </div>
+          <div class="card">
+            <h3>Resumen</h3>
+            <button class="btn btn-ghost" data-nav="resumen">Ver</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Resto de vistas (publicar, mis-cargas, ofertas, etc.) -->
+      <section data-route="publicar" class="view">
+        <h2>Publicar carga</h2>
+        <form id="publish-form" class="form" autocomplete="off">
+          <label>Origen <input name="origen" required/></label>
+          <label>Destino <input name="destino" required/></label>
+          <label>Tipo <input name="tipo" placeholder="Palets, a granel..." required/></label>
+          <label>Tamaño <input name="tamano" placeholder="Ej: 10 pallets / 20 m³ / 8 tn" required/></label>
+          <label>Fecha <input type="date" name="fecha" required/></label>
+          <button class="btn btn-primary" type="submit">Publicar</button>
+        </form>
+        <h3 class="mt">Tus publicaciones</h3>
+        <ul id="loads-list" class="list"></ul>
+      </section>
+
+      <section data-route="mis-cargas" class="view">
+        <h2>Mis cargas y propuestas (filtradas por SENDIX)</h2>
+        <ul id="my-loads-with-proposals" class="list"></ul>
+      </section>
+
+      <section data-route="ofertas" class="view">
+        <h2>Ofertas disponibles</h2>
+        <ul id="offers-list" class="list"></ul>
+      </section>
+
+      <section data-route="mis-postulaciones" class="view">
+        <h2>Mis postulaciones</h2>
+        <ul id="my-proposals" class="list"></ul>
+      </section>
+
+      <section data-route="mis-envios" class="view">
+        <h2>Mis envíos (aprobados)</h2>
+        <ul id="shipments" class="list"></ul>
+      </section>
+
+      <section data-route="moderacion" class="view">
+        <h2>Bandeja de propuestas (moderación)</h2>
+        <ul id="inbox" class="list"></ul>
+      </section>
+
+      <section data-route="conversaciones" class="view">
+        <div class="chat-wrapper">
+          <aside class="chat-sidebar">
+            <div class="chat-sidebar-header">
+              <h2>Chats</h2>
+              <input id="chat-search" placeholder="Buscar…" />
+            </div>
+            <ul id="threads" class="thread-list"></ul>
+          </aside>
+          <section class="chat-main">
+            <div class="chat-main-header">
+              <div>
+                <h3 id="chat-title">Elegí una conversación</h3>
+                <p class="muted" id="chat-topic"></p>
+              </div>
+              <div class="chat-main-actions">
+                <button class="btn" id="open-related-tracking">Ver envío</button>
+              </div>
+            </div>
+            <div id="chat-box" class="chat-box big"></div>
+            <form id="chat-form" class="chat-input">
+              <input name="message" placeholder="Escribí un mensaje…" required/>
+              <button class="btn btn-primary" type="submit">Enviar</button>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section data-route="resumen" class="view">
+        <h2>Resumen (demo)</h2>
+        <ul class="list">
+          <li class="row"><span>Publicaciones activas</span><strong id="m-total-loads">0</strong></li>
+          <li class="row"><span>Postulaciones totales</span><strong id="m-total-proposals">0</strong></li>
+          <li class="row"><span>Filtradas</span><strong id="m-filtered">0</strong></li>
+          <li class="row"><span>Aprobadas</span><strong id="m-approved">0</strong></li>
+          <li class="row"><span>Rechazadas</span><strong id="m-rejected">0</strong></li>
+          <li class="row"><span>En revisión</span><strong id="m-pending">0</strong></li>
+        </ul>
+      </section>
+
+      <section data-route="tracking" class="view">
+        <h2>Envío en curso (demo global)</h2>
+        <div class="row">
+          <select id="tracking-shipment-select"></select>
+          <label class="row" style="gap:6px; align-items:center">
+            <input type="checkbox" id="tracking-only-active" checked/>
+            <span class="muted">Solo activos</span>
+          </label>
+          <input id="tracking-search" placeholder="Buscar envío…" />
+          <span id="tracking-role-hint" class="muted"></span>
+        </div>
+        <ul id="tracking-list" class="list"></ul>
+        <div class="map-box"><img src="assets/map-placeholder.svg" alt="Mapa"/></div>
+        <div class="progress-road" id="progress-road">
+          <div class="truck" id="truck">
+            <svg viewBox="0 0 64 40" width="28" height="18" aria-hidden="true">
+              <rect x="2" y="16" width="34" height="12"/>
+              <rect x="36" y="10" width="20" height="18"/>
+              <circle cx="14" cy="32" r="4"/>
+              <circle cx="40" cy="32" r="4"/>
+            </svg>
+          </div>
+          <div class="progress-dot" style="left:0%"></div>
+          <div class="progress-dot" style="left:33.33%"></div>
+          <div class="progress-dot" style="left:66.66%"></div>
+          <div class="progress-dot" style="left:100%"></div>
+        </div>
+        <div class="status"><div class="dot" data-step="pendiente"></div><span>Pendiente</span></div>
+        <div class="status"><div class="dot" data-step="en-carga"></div><span>En carga</span></div>
+        <div class="status"><div class="dot" data-step="en-camino"></div><span>En camino</span></div>
+        <div class="status"><div class="dot" data-step="entregado"></div><span>Entregado</span></div>
+        <div class="actions" id="tracking-actions">
+          <button class="btn" data-advance>Avanzar estado</button>
+          <button class="btn btn-ghost" data-reset>Reiniciar</button>
+          <button class="btn" id="tracking-open-chat">Abrir chat</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom navs -->
+    <nav class="bottombar" id="nav-empresa">
+      <button class="tab" data-nav="home">🏠</button>
+      <button class="tab" data-nav="publicar">📝</button>
+      <button class="tab" data-nav="mis-cargas">📦</button>
+      <button class="tab" data-nav="conversaciones">💬</button>
+      <button class="tab" data-nav="tracking">🧭</button>
+    </nav>
+
+    <nav class="bottombar" id="nav-transportista">
+      <button class="tab" data-nav="home">🏠</button>
+      <button class="tab" data-nav="ofertas">🔎</button>
+      <button class="tab" data-nav="mis-postulaciones">📨</button>
+      <button class="tab" data-nav="mis-envios">🚚</button>
+      <button class="tab" data-nav="conversaciones">💬</button>
+      <button class="tab" data-nav="tracking">🧭</button>
+    </nav>
+
+    <nav class="bottombar" id="nav-sendix">
+      <button class="tab" data-nav="home">🏠</button>
+      <button class="tab" data-nav="moderacion">🗂️</button>
+      <button class="tab" data-nav="conversaciones">💬 <span id="nav-unread" class="badge-pill" style="display:none">0</span></button>
+      <button class="tab" data-nav="resumen">📊</button>
+      <button class="tab" data-nav="tracking">🧭</button>
+    </nav>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

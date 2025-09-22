@@ -1,0 +1,252 @@
+/* =====================================================================
+   SENDIX — styles.css (comentado)
+   ---------------------------------------------------------------------
+   - Diseño claro basado en la paleta del logo
+   - Variables CSS para colores, sombras, radios y tokens reutilizables
+   - Componentes principales: topbar, cards, botones, listas, chat, tracking y tabs
+   ===================================================================== */
+
+/* --------------------
+   Paleta y design tokens
+   -------------------- */
+:root{
+  /* Colores base (extraídos del logo) */
+  --bg:#c0ced3;        /* Fondo general */
+  --card:#ffffff;      /* Tarjetas / contenedores */
+  --text:#0E2F44;      /* Azul oscuro del logo: color principal de texto */
+  --muted:#5A6C79;     /* Texto secundario/desaturado */
+
+  --primary:#0E2F44;   /* Primario (links, títulos, énfasis) */
+  --secondary:#3AAFA9; /* Teal (botones principales, detalles fríos) */
+  --accent:#F39200;    /* Naranja (llamados de atención, badges) */
+
+  --border:#E3EDF2;    /* Bordes suaves */
+  --success:#1B9E77;   /* Verde para estados OK */
+  --danger:#D64545;    /* Rojo para estados críticos */
+
+  /* Radio y sombras reusables */
+  --radius: 18px;
+  --radius-lg: 22px;
+  --shadow-sm: 0 4px 12px rgba(14,47,68,.08);
+  --shadow-md: 0 10px 28px rgba(14,47,68,.14);
+  --shadow-lg: 0 24px 48px rgba(14,47,68,.18);
+  --ring: 0 0 0 3px rgba(58,175,169,.25);
+}
+
+/* Reset mínimo y base tipográfica */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
+  color:var(--text);
+  background:
+    radial-gradient(900px 400px at -10% 110%, rgba(58,175,169,.10), transparent 60%),
+    radial-gradient(1200px 600px at 80% -10%, rgba(243,146,0,.10), transparent 60%),
+    var(--bg);
+}
+
+/* Layout principal */
+#app{display:flex; flex-direction:column; min-height:100vh; max-width:980px; margin:0 auto}
+
+/* --------------------
+   Topbar (encabezado)
+   -------------------- */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:16px 20px; border-bottom:1px solid var(--border);
+  background:#fff; box-shadow: 0 4px 18px rgba(14,47,68,.06);
+}
+.brand{display:flex; gap:12px; align-items:center}
+.logo{width:40px; height:40px; object-fit:contain; border-radius:8px; background:#fff}
+.app-name{margin:0; font-size:28px; color:var(--primary)}
+.tagline{margin:0; color:var(--accent); font-size:12px; font-weight:700}
+.user-badge{color:var(--muted); font-size:14px}
+
+/* Contenedor de vistas */
+#view-container{flex:1; padding:18px; padding-bottom:98px}
+
+/* Animación de vistas */
+.view{display:none; animation:fade .15s ease-out}
+.view.active{display:block}
+@keyframes fade{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none}}
+
+/* --------------------
+   Cards (tarjetas de home y list items)
+   -------------------- */
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:20px}
+.card{
+  background:var(--card);
+  border:1px solid #000000;              /* borde negro */
+  color:var(--text);
+  border-radius: var(--radius-lg);
+  padding:18px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15); /* sombra leve */
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.card:hover{
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: rgba(58,175,169,.35);
+}
+
+/* --------------------
+   Botones
+   -------------------- */
+.btn{
+  border:1px solid var(--border); background:#fff; color:var(--primary);
+  padding:12px 16px; border-radius:14px; cursor:pointer;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease;
+  box-shadow: 0 1px 0 rgba(14,47,68,.05);
+}
+.btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+.btn:active{ transform: translateY(0); box-shadow: 0 1px 0 rgba(14,47,68,.05); }
+.btn-primary{
+  background: linear-gradient(135deg, var(--secondary), #67c7c2);
+  border: none; color:#fff; font-weight:700;
+  box-shadow: 0 10px 20px rgba(58,175,169,.25);
+}
+.btn-primary:hover{ filter: brightness(1.02); }
+.btn-primary:focus{ box-shadow: var(--ring); outline: none; }
+.btn-ghost{ background:transparent }
+
+/* --------------------
+   Formularios e inputs
+   -------------------- */
+.form{display:grid; gap:12px; max-width:520px}
+.form.small{max-width:420px}
+.form input{padding:12px 14px; border-radius:12px; border:1px solid var(--border); background:#fff; color:var(--text)}
+.form input::placeholder{color:#94a6b2}
+.form input, .chat-input input, select, #chat-search{
+  transition: box-shadow .15s ease, border-color .15s ease, background .15s ease;
+  border-radius: 14px;
+}
+.form input:focus, .chat-input input:focus, select:focus, #chat-search:focus{
+  outline: none; box-shadow: var(--ring); border-color: rgba(58,175,169,.45);
+}
+.roles{border:1px dashed var(--border); padding:10px; border-radius:12px}
+.radio{display:block; margin:6px 0}
+
+/* --------------------
+   Listas
+   -------------------- */
+.list{list-style:none; padding:0; margin:8px 0; display:grid; gap:10px}
+.list li{
+  background:var(--card); border:1px solid var(--border); border-radius: var(--radius);
+  padding:12px; color:var(--text); box-shadow: var(--shadow-sm);
+}
+.list li:hover{ box-shadow: var(--shadow-md); }
+.row{display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap}
+.badge{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); color:var(--primary); background:rgba(14,47,68,.06)}
+.badge-pill{display:inline-block; min-width:18px; padding:2px 6px; border-radius:999px; font-size:12px;
+  background:var(--accent); color:#ffffff; font-weight:700; text-align:center;}
+
+/* --------------------
+   Chat
+   -------------------- */
+.chat-wrapper{display:grid; grid-template-columns: 320px 1fr; gap:16px; height: calc(100vh - 200px)}
+.chat-sidebar{background:var(--card); border:1px solid var(--border); border-radius:var(--radius-lg); display:flex; flex-direction:column; box-shadow: var(--shadow-sm)}
+.chat-sidebar-header{padding:12px; border-bottom:1px solid var(--border); display:grid; gap:8px}
+.thread-list{list-style:none; margin:0; padding:0; overflow:auto; display:grid; gap:6px}
+.thread-item{display:flex; align-items:center; gap:12px; padding:12px; border:none; border-radius:14px; cursor:pointer}
+.thread-item:hover{background:#eef6f7}
+.thread-title{font-weight:700; color:var(--primary)}
+.thread-sub{color:var(--muted); font-size:12px}
+.thread-badge{margin-left:auto}
+
+.chat-main{background:var(--card); border:1px solid var(--border); border-radius:var(--radius-lg); display:flex; flex-direction:column; box-shadow: var(--shadow-sm)}
+.chat-main-header{padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between}
+.chat-box.big{min-height:360px; max-height:none; height: 100%; overflow:auto; padding:16px; display:grid; gap:10px; background:#fbfdfe; border-radius:16px; box-shadow: inset 0 1px 0 rgba(14,47,68,.05)}
+.bubble{max-width:70%; padding:8px 10px; border:1px solid var(--border); border-radius:14px; font-size:15px}
+.bubble.me{margin-left:auto; background:#e3f3f1; border-color:#cceae7}
+.bubble.other{margin-right:auto; background:#fff}
+.avatar{width:36px; height:36px; border-radius:999px; background:#e9f3f6; display:grid; place-items:center; font-weight:800; border:1px solid var(--border); color:var(--primary)}
+.chat-input{display:flex; gap:8px; margin-top:10px; padding:12px; border-top:1px solid var(--border)}
+.chat-input input{flex:1; padding:12px 14px; border-radius:12px; border:1px solid var(--border); background:#fff; color:var(--text)}
+.chat-input input::placeholder{color:#94a6b2}
+
+/* --------------------
+   Selects
+   -------------------- */
+select{padding:12px 14px; border-radius:12px; border:1px solid var(--border); background:#fff; color:var(--text)}
+select option{color:#0E2F44; background:#fff}
+
+/* --------------------
+   Tracking
+   -------------------- */
+.progress-road{
+  position:relative; height:12px; background:#eaf1f6; border:1px solid var(--border); border-radius:999px; margin:16px 0;
+  box-shadow: inset 0 2px 6px rgba(14,47,68,.08);
+}
+.progress-dot{position:absolute; top:50%; width:12px; height:12px; border-radius:50%; background:#0E2F44; transform:translate(-50%,-50%); border:2px solid #fff}
+.truck{position:absolute; top:-14px; width:28px; height:18px; transition:left .6s ease-in-out; filter: drop-shadow(0 6px 10px rgba(14,47,68,.18))}
+.truck svg rect, .truck svg circle { fill:#0E2F44; }
+.truck.moving{ animation: truck-bob .6s ease-in-out 1; }
+@keyframes truck-bob{ 0%{transform:translateY(0)} 35%{transform:translateY(-2px)} 70%{transform:translateY(1px)} 100%{transform:translateY(0)} }
+
+.status{display:flex; align-items:center; gap:10px; margin:8px 0}
+.dot{width:14px; height:14px; border-radius:50%; border:2px solid #cfe5e8; background:#fff}
+.dot.active{border-color:var(--secondary); box-shadow:0 0 0 4px rgba(58,175,169,.25)}
+
+/* --------------------
+   Bottom navigation
+   -------------------- */
+.bottombar{
+  position:fixed; left:0; right:0; bottom:0; display:none; justify-content:space-around; gap:10px;
+  padding:12px; border-top:1px solid var(--border); background:rgba(255,255,255,.9); backdrop-filter:blur(12px);
+  box-shadow: 0 -8px 24px rgba(14,47,68,.08);
+}
+.bottombar.visible{display:flex}
+.tab{background:transparent; border:none; font-size:22px; color:var(--primary); padding:10px 16px; border-radius:12px; cursor:pointer; font-weight:700; transition: background .15s ease, transform .12s ease}
+.tab:hover{ background:#f0f6f7; transform: translateY(-1px) }
+.tab.active{background: linear-gradient(180deg, #ffffff, #f0f6f7); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 8px 16px rgba(14,47,68,.08)}
+
+/* --------------------
+   Responsivo
+   -------------------- */
+@media (max-width: 860px){
+  .chat-wrapper{grid-template-columns:1fr}
+  .chat-sidebar{height:280px}
+}
+
+#tracking-search{max-width:220px}
+#tracking-list .row .btn{padding:8px 12px}
+
+
+hero { margin-bottom: 28px; }
+
+.view[data-route="home"] .cards { margin-top: 20px; }
+
+.cards .card { display:flex; flex-direction:column; }
+
+.cards .card .btn-ghost { align-self:flex-end; background: var(--primary); color:#fff; }
+
+/* Header full-width con contenedor interno */
+.topbar{
+  position: sticky;  /* queda pegado arriba al hacer scroll */
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 18px rgba(14,47,68,.06);
+}
+.topbar-inner{
+  max-width: 1200px;   /* podés usar 980px si preferís */
+  margin: 0 auto;
+  padding: 16px 20px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+
+/* Ajustes responsivos */
+@media (max-width: 600px){
+  .topbar-inner{ padding: 12px 14px; }
+  .brand{ gap: 10px; }
+  .app-name{ font-size: 22px; }
+  .tagline{ font-size: 11px; }
+  .user-badge{ font-size: 13px; }
+}
+
+/* Como el header ya no está dentro de #app, #view-container puede volver a su padding normal */
+#view-container{ padding-top: 18px; }
+
