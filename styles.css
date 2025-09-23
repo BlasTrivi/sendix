@@ -118,9 +118,9 @@ body{
 
 /* Contenedor de vistas */
 #view-container{flex:1; padding:18px; padding-bottom: calc(var(--bbar-h) + 110px + var(--safe-bottom)); overflow:auto}
-/* Ocultar visualmente la barra de scroll en la ruta Publicar (manteniendo desplazamiento) */
-body.route-publicar #view-container{ scrollbar-width: none; -ms-overflow-style: none; }
-body.route-publicar #view-container::-webkit-scrollbar{ width: 0; height: 0; }
+/* Ocultar visualmente la barra de scroll del contenedor principal en todas las vistas (manteniendo desplazamiento) */
+#view-container{ scrollbar-width: none; -ms-overflow-style: none; }
+#view-container::-webkit-scrollbar{ width: 0; height: 0; }
 /* En la vista de chat, evitamos scroll de la vista completa y lo dejamos al panel de mensajes */
 .view.active[data-route="conversaciones"]{ overflow:hidden; display:flex; flex-direction:column; min-height:0; }
 .view.active[data-route="conversaciones"] .chat-wrapper{ flex:0 0 auto; min-height:0; display:grid; grid-template-columns: 1fr; height: var(--chat-h); margin-bottom: calc(var(--bbar-h) + 12px); }
