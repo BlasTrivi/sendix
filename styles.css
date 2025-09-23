@@ -37,6 +37,8 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   /* Altura actual de la barra inferior (dinámica por JS) */
   --bbar-h: 64px;
+  /* Altura fija del recuadro de chat en escritorio */
+  --chat-h: 540px;
 }
 /* --------------------
    Mejoras visuales generales
@@ -118,7 +120,10 @@ body{
 #view-container{flex:1; padding:18px; padding-bottom: calc(var(--bbar-h) + 98px + var(--safe-bottom)); overflow:auto}
 /* En la vista de chat, evitamos scroll de la vista completa y lo dejamos al panel de mensajes */
 .view.active[data-route="conversaciones"]{ overflow:hidden; display:flex; flex-direction:column; min-height:0; }
-.view.active[data-route="conversaciones"] .chat-wrapper{ flex:1; min-height:0; display:grid; grid-template-columns: 320px 1fr; }
+.view.active[data-route="conversaciones"] .chat-wrapper{ flex:0 0 auto; min-height:0; display:grid; grid-template-columns: 320px 1fr; height: var(--chat-h); margin-bottom: calc(var(--bbar-h) + 12px); }
+
+/* En la ruta de conversaciones, no scrollear el contenedor general */
+body.route-conversaciones #view-container{ overflow: hidden; padding-bottom: 18px; }
 .chat-main{ display:flex; flex-direction:column; }
 .chat-box.big{ flex:1; overflow:auto; }
 
@@ -223,7 +228,7 @@ body{
 
 .chat-main{background:var(--card); border:1px solid var(--border); border-radius:var(--radius-lg); display:flex; flex-direction:column; box-shadow: var(--shadow-sm); overflow:hidden; height: 100%; min-height:0}
 .chat-main-header{padding:12px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; position: sticky; top:0; background:var(--card); z-index:1}
-.chat-box.big{min-height:360px; height: 100%; overflow:auto; padding:16px; padding-bottom: 120px; display:grid; gap:10px; background:#fbfdfe; border-radius:16px; box-shadow: inset 0 1px 0 rgba(14,47,68,.05)}
+.chat-box.big{min-height:0; flex:1; overflow:auto; padding:16px; padding-bottom: 120px; display:grid; gap:10px; background:#fbfdfe; border-radius:16px; box-shadow: inset 0 1px 0 rgba(14,47,68,.05)}
 .bubble{max-width:70%; padding:10px 12px; border:1px solid var(--border); border-radius:14px; font-size:15px; line-height:1.3; position:relative; overflow-wrap:anywhere; word-break:break-word}
 .bubble.me{margin-left:auto; background:#e3f3f1; border-color:#cceae7}
 .bubble.other{margin-right:auto; background:#fff}
@@ -283,7 +288,8 @@ select option{color:#0E2F44; background:#fff}
    -------------------- */
 @media (max-width: 860px){
   .chat-wrapper{grid-template-columns:1fr}
-  .chat-sidebar{height:280px}
+  /* En pantallas pequeñas hacemos el recuadro del chat proporcional a la altura de la ventana */
+  .view.active[data-route="conversaciones"] .chat-wrapper{ height: 70vh; }
 }
 
 #tracking-search{max-width:220px}
