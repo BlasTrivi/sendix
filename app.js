@@ -305,7 +305,17 @@ function renderShipments(){
     const id = b.dataset.saveShip;
     const sel = document.querySelector(`select[data-ship="${id}"]`);
     const p = state.proposals.find(x=>x.id===id);
-    if(p){ p.shipStatus = sel.value; save(); renderShipments(); alert('Estado actualizado'); }
+    if(p){
+      const prev = p.shipStatus || 'pendiente';
+      const next = sel.value;
+      p.shipStatus = next;
+      save();
+      if(next==='entregado' && prev!=='entregado'){
+        notifyDelivered(p);
+      }
+      renderShipments();
+      alert('Estado actualizado');
+    }
   }));
   ul.querySelectorAll('[data-chat]').forEach(b=>b.addEventListener('click', ()=>openChatByProposalId(b.dataset.chat)));
 }
@@ -385,6 +395,18 @@ function renderThreads(){
   document.getElementById('chat-search')?.addEventListener('input', ()=>renderThreads());
 }
 
+// Notificación al entregar: mensaje del sistema en el hilo para la empresa y resto de participantes
+function notifyDelivered(proposal){
+  const l = state.loads.find(x=>x.id===proposal.loadId);
+  const threadId = threadIdFor(proposal);
+  const text = `🚚 Entrega confirmada: ${l?.origen||''} → ${l?.destino||''} por ${proposal.carrier}.`;
+  state.messages.push({ threadId, from: 'Sistema', role: 'sendix', text, ts: Date.now() });
+  save();
+  // Actualizar badges si el usuario está viendo conversaciones
+  const currentRoute = location.hash.replace('#','')||'home';
+  if(currentRoute==='conversaciones'){ renderThreads(); }
+}
+
 // Resumen métricas (demo)
 function renderMetrics(){
   const tLoads = state.loads.length;
@@ -445,7 +467,6 @@ function renderChat(){
 
 // Tracking global por envío
 function renderTracking(){
-  const select = document.getElementById('tracking-shipment-select');
   const hint = document.getElementById('tracking-role-hint');
   const actions = document.getElementById('tracking-actions');
   const onlyActive = document.getElementById('tracking-only-active');
@@ -482,24 +503,23 @@ function renderTracking(){
     state.activeShipmentProposalId = filtered[0].id;
   }
 
-  select.innerHTML = filtered.map(p=>{
-    const l = state.loads.find(x=>x.id===p.loadId);
-    return `<option value="${p.id}" ${state.activeShipmentProposalId===p.id?'selected':''}>${l?.origen} → ${l?.destino} · ${p.carrier} · ${p.shipStatus||'pendiente'}</option>`;
-  }).join('');
-
   const ul = document.getElementById('tracking-list');
   ul.innerHTML = filtered.length ? filtered.map(p=>{
     const l = state.loads.find(x=>x.id===p.loadId);
     const threadId = threadIdFor(p);
     const unread = computeUnread(threadId);
-    return `<li class="row">
-      <div>
-        <div><strong>${l?.origen} → ${l?.destino}</strong> · <span class="badge">${p.shipStatus||'pendiente'}</span></div>
-        <div class="muted">Emp: ${l?.owner} · Transp: ${p.carrier} · Tamaño: ${l?.tamano||'-'}</div>
-      </div>
+    const chipClass = (p.shipStatus==='entregado') ? 'ok' : (p.shipStatus==='en-camino'?'':'warn');
+    return `<li>
       <div class="row">
-        <button class="btn" data-select="${p.id}">Ver</button>
-        <button class="btn" data-chat="${p.id}">Chat ${unread?`<span class='badge-pill'>${unread}</span>`:''}</button>
+        <div class="title">${l?.origen} → ${l?.destino}</div>
+        <span class="chip ${chipClass}">${p.shipStatus||'pendiente'}</span>
+      </div>
+      <div class="row subtitle">
+        <div>Emp: ${l?.owner} · Transp: ${p.carrier} · Tam: ${l?.tamano||'-'}</div>
+        <div class="row" style="gap:8px">
+          <button class="btn" data-select="${p.id}">Ver</button>
+          <button class="btn" data-chat="${p.id}">Chat ${unread?`<span class='badge-pill'>${unread}</span>`:''}</button>
+        </div>
       </div>
     </li>`;
   }).join('') : '<li class="muted">No hay envíos para mostrar.</li>';
@@ -612,10 +632,16 @@ function renderTracking(){
 
   document.querySelector('[data-advance]').onclick = ()=>{
     if(!current) return;
-    const idx = SHIP_STEPS.indexOf(current.shipStatus||'pendiente');
-    current.shipStatus = SHIP_STEPS[Math.min(idx+1, SHIP_STEPS.length-1)];
-    state.trackingStep = current.shipStatus;
-    save(); renderTracking();
+    const prev = current.shipStatus || 'pendiente';
+    const idx = SHIP_STEPS.indexOf(prev);
+    const next = SHIP_STEPS[Math.min(idx+1, SHIP_STEPS.length-1)];
+    current.shipStatus = next;
+    state.trackingStep = next;
+    save();
+    if(next==='entregado' && prev!=='entregado'){
+      notifyDelivered(current);
+    }
+    renderTracking();
   };
   document.querySelector('[data-reset]').onclick = ()=>{
     if(!current) return;
@@ -624,7 +650,6 @@ function renderTracking(){
     save(); renderTracking();
   };
   document.getElementById('tracking-open-chat').onclick = ()=>{ if(current) openChatByProposalId(current.id); };
-  select.onchange = ()=>{ state.activeShipmentProposalId = select.value; const cur = state.proposals.find(p=>p.id===state.activeShipmentProposalId); state.trackingStep = cur?.shipStatus || 'pendiente'; save(); renderTracking(); };
   onlyActive?.addEventListener('change', ()=>renderTracking());
   search?.addEventListener('input', ()=>renderTracking());
 }

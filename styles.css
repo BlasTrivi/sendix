@@ -180,6 +180,11 @@ body{
   background:var(--card); border:1px solid var(--border); border-radius: var(--radius);
   padding:12px; color:var(--text); box-shadow: var(--shadow-sm);
 }
+.list li .title{font-weight:700; color:var(--primary)}
+.list li .subtitle{color:var(--muted); font-size:13px}
+.list li .chip{display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#eef6f7; border:1px solid var(--border); color:var(--primary)}
+.list li .chip.ok{background:#eafaf2; border-color:#d7f0e0; color:#15803d}
+.list li .chip.warn{background:#fff5e6; border-color:#ffe6c2; color:#a15b00}
 .list li:hover{ box-shadow: var(--shadow-md); }
 .row{display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap}
 .badge{font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); color:#fff; background:var(--secondary)}
@@ -245,6 +250,10 @@ select option{color:#0E2F44; background:#fff}
 
 #tracking-search{max-width:220px}
 #tracking-list .row .btn{padding:8px 12px}
+
+/* Tracking list tweaks */
+#tracking-list li{padding:14px}
+#tracking-list li .row:first-child{margin-bottom:6px}
 
 
 /* limpieza: selector suelto 'hero' eliminado */
