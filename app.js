@@ -436,21 +436,23 @@ function renderChat(){
 }
 
 function setTruckPositionByStep(step){
+  // Nueva animación para SVG
   const idx = SHIP_STEPS.indexOf(step);
-  const pct = idx <= 0 ? 0 : idx >= SHIP_STEPS.length-1 ? 100 : (idx/(SHIP_STEPS.length-1))*100;
-  const truck = document.getElementById('truck');
+  // Posiciones X de los pasos en el SVG
+  const positions = [40, 200, 360, 560];
+  const truck = document.getElementById('tracking-truck');
   if(truck){
+    truck.setAttribute('x', positions[idx] - 19); // Centrar el camión sobre el círculo
     truck.classList.add('moving');
-    truck.style.left = pct + '%';
     setTimeout(()=>truck.classList.remove('moving'), 700);
   }
 }
 function updateTrackingDots(step){
+  // Resalta los pasos en el SVG
   const idx = SHIP_STEPS.indexOf(step);
-  document.querySelectorAll('.dot').forEach(d=>d.classList.remove('active'));
-  document.querySelectorAll('.dot').forEach(d=>{
-    const s = d.getAttribute('data-step');
-    if (SHIP_STEPS.indexOf(s) <= idx) d.classList.add('active');
+  document.querySelectorAll('.tracking-step').forEach((c,i)=>{
+    if(i<=idx) c.classList.add('active');
+    else c.classList.remove('active');
   });
 }
 

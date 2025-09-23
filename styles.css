@@ -43,57 +43,31 @@
   background: linear-gradient(120deg, #eaf7f6 60%, #fff 100%);
   border-radius: var(--radius-lg);
   padding: 32px 24px 24px 24px;
-  margin-bottom: 24px;
-  text-align: center;
-}
-.hero-title {
-  font-size: 2.1rem;
-  font-weight: 800;
-  color: var(--primary);
-  margin-bottom: 8px;
-}
-.hero-desc {
-  font-size: 1.1rem;
-  color: var(--muted);
-  margin-bottom: 12px;
-}
-.hero-btn {
-  font-size: 1.1rem;
-  padding: 14px 0;
-  width: 100%;
-  max-width: 260px;
-  margin: 0 auto;
-  box-shadow: var(--shadow-md);
-}
-
-.section-title {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--primary);
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.badge {
-  background: var(--accent);
-  color: #fff;
-  font-weight: 700;
-  border-radius: 999px;
-  padding: 4px 12px;
-  font-size: 0.95em;
-  box-shadow: var(--shadow-sm);
-}
-
-.publish-box, .login-box {
-  transition: box-shadow .18s, transform .18s;
-}
-.publish-box:hover, .login-box:hover {
-  transform: translateY(-2px) scale(1.01);
-  box-shadow: 0 32px 64px rgba(14,47,68,.22);
-}
-
-.card {
+  /* Tracking visual styles */
+  .tracking-visual {
+    width: 100%;
+    max-width: 600px;
+    margin: 32px auto 24px auto;
+    position: relative;
+    background: none;
+  }
+  .tracking-svg {
+    width: 100%;
+    height: 120px;
+    display: block;
+  }
+  .tracking-step {
+    transition: fill 0.4s, stroke 0.4s;
+    filter: drop-shadow(0 2px 8px #0001);
+  }
+  .tracking-step.active {
+    fill: #0E2F44;
+    stroke: #0E2F44;
+  }
+  #tracking-truck {
+    transition: x 0.7s cubic-bezier(.7,.2,.3,1);
+    /* Will be animated via JS */
+  }
   transition: box-shadow .18s, transform .18s;
 }
 .card:hover {
