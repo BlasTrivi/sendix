@@ -456,7 +456,15 @@ function renderChat(){
   const replySnippet = document.getElementById('reply-snippet');
   const attachPreviews = document.getElementById('attach-previews');
   const contextMenu = document.getElementById('context-menu');
-  if(!state.activeThread){ box.innerHTML = '<div class="muted">Elegí una conversación.</div>'; title.textContent='Elegí una conversación'; topic.textContent=''; return; }
+  const chatForm = document.getElementById('chat-form');
+  if(!state.activeThread){
+    box.innerHTML = '<div class="muted">Elegí una conversación.</div>';
+    title.textContent='Elegí una conversación'; topic.textContent='';
+    typing.style.display='none'; replyBar.style.display='none'; attachPreviews.style.display='none';
+    chatForm.style.display='none';
+    return;
+  }
+  chatForm.style.display='flex';
   const p = state.proposals.find(x=>threadIdFor(x)===state.activeThread);
   if(!p){ box.innerHTML='<div class="muted">Conversación no disponible.</div>'; return; }
   const l = state.loads.find(x=>x.id===p.loadId);
