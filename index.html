@@ -60,57 +60,70 @@
 
         <!-- Tarjetas EMPRESA -->
         <div id="cards-empresa" class="cards">
-          <div class="card">
+          <div class="card" data-nav="publicar">
             <h3>Publicar carga</h3>
+            <p class="card-desc">Creá una publicación con origen, destino y detalles para recibir postulaciones.</p>
             <button class="btn btn-ghost" data-nav="publicar">Ir</button>
           </div>
-          <div class="card">
+          <div class="card" data-nav="mis-cargas">
             <h3>Mis cargas</h3>
+            <p class="card-desc">Revisá y gestioná las publicaciones que creaste.</p>
+            <span class="badge-pill card-badge" id="badge-empresa-mis-cargas" style="display:none">0</span>
             <button class="btn btn-ghost" data-nav="mis-cargas">Ir</button>
           </div>
-          <div class="card">
+          <div class="card" data-nav="tracking">
             <h3>Envío en curso</h3>
-            <p>Ver estado de tus envíos aprobados.</p>
+            <p class="card-desc">Ver estado de tus envíos aprobados.</p>
+            <span class="badge-pill card-badge" id="badge-empresa-tracking" style="display:none">0</span>
             <button class="btn btn-ghost" data-nav="tracking">Abrir</button>
           </div>
         </div>
 
         <!-- Tarjetas TRANSPORTISTA -->
         <div id="cards-transportista" class="cards">
-          <div class="card">
+          <div class="card" data-nav="ofertas">
             <h3>Ofertas disponibles</h3>
+            <p class="card-desc">Explorá cargas cercanas y postulá con tu precio y vehículo.</p>
+            <span class="badge-pill card-badge" id="badge-transp-ofertas" style="display:none">0</span>
             <button class="btn btn-ghost" data-nav="ofertas">Ver</button>
           </div>
-          <div class="card">
+          <div class="card" data-nav="mis-postulaciones">
             <h3>Mis postulaciones</h3>
+            <p class="card-desc">Seguimiento de tus ofertas y su estado (aprobada, filtrada, etc.).</p>
+            <span class="badge-pill card-badge" id="badge-transp-mis-postulaciones" style="display:none">0</span>
             <button class="btn btn-ghost" data-nav="mis-postulaciones">Ver</button>
           </div>
-          <div class="card">
+          <div class="card" data-nav="mis-envios">
             <h3>Mis envíos</h3>
-            <p>Gestioná estado por cada envío aprobado.</p>
+            <p class="card-desc">Gestioná estado por cada envío aprobado.</p>
+            <span class="badge-pill card-badge" id="badge-transp-mis-envios" style="display:none">0</span>
             <button class="btn btn-ghost" data-nav="mis-envios">Abrir</button>
           </div>
-          <div class="card">
+          <div class="card" data-nav="tracking">
             <h3>Envío en curso</h3>
-            <p>Actualizá estado desde acá también.</p>
+            <p class="card-desc">Actualizá estado desde acá también.</p>
+            <span class="badge-pill card-badge" id="badge-transp-tracking" style="display:none">0</span>
             <button class="btn btn-ghost" data-nav="tracking">Abrir</button>
           </div>
         </div>
 
         <!-- Tarjetas SENDIX -->
         <div id="cards-sendix" class="cards">
-          <div class="card">
+          <div class="card" data-nav="moderacion">
             <h3>Bandeja de propuestas</h3>
-            <p>Filtrar propuestas y derivar a la empresa.</p>
+            <p class="card-desc">Filtrar propuestas y derivar a la empresa.</p>
+            <span class="badge-pill card-badge" id="badge-sendix-moderacion" style="display:none">0</span>
             <button class="btn btn-ghost" data-nav="moderacion">Abrir</button>
           </div>
-          <div class="card">
+          <div class="card" data-nav="conversaciones">
             <h3>Conversaciones</h3>
-            <p>Acceso rápido a chats aprobados.</p>
+            <p class="card-desc">Acceso rápido a chats aprobados.</p>
+            <span class="badge-pill card-badge" id="badge-sendix-conversaciones" style="display:none">0</span>
             <button class="btn btn-ghost" data-nav="conversaciones">Abrir</button>
           </div>
-          <div class="card">
+          <div class="card" data-nav="resumen">
             <h3>Resumen</h3>
+            <p class="card-desc">Indicadores y métricas generales (demo).</p>
             <button class="btn btn-ghost" data-nav="resumen">Ver</button>
           </div>
         </div>

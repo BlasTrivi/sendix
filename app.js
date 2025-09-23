@@ -87,6 +87,15 @@ function navigate(route){
 }
 function initNav(){
   document.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click', ()=>navigate(el.dataset.nav)));
+  // Permitir que las tarjetas del home sean clickeables en toda su superficie
+  document.addEventListener('click', (e)=>{
+    const target = e.target.closest('.card[data-nav]');
+    if(target){
+      // Evitar doble navegación si se hizo click en el botón interno
+      if(e.target.closest('button')) return;
+      navigate(target.dataset.nav);
+    }
+  });
   document.getElementById('btn-start')?.addEventListener('click', ()=>{
     const r = state.user?.role==='empresa' ? 'publicar' : state.user?.role==='transportista' ? 'ofertas' : state.user?.role==='sendix' ? 'moderacion' : 'login';
     navigate(r);
@@ -661,6 +670,38 @@ function renderHome(){
   document.getElementById('cards-empresa').style.display = state.user?.role==='empresa' ? 'grid' : 'none';
   document.getElementById('cards-transportista').style.display = state.user?.role==='transportista' ? 'grid' : 'none';
   document.getElementById('cards-sendix').style.display = state.user?.role==='sendix' ? 'grid' : 'none';
+
+  // Badges por rol
+  if(state.user?.role==='empresa'){
+    const myLoads = state.loads.filter(l=>l.owner===state.user.name).length;
+    const myApproved = state.proposals.filter(p=>state.loads.find(l=>l.id===p.loadId && l.owner===state.user.name) && p.status==='approved');
+    const trackingActivos = myApproved.filter(p=>(p.shipStatus||'pendiente')!=='entregado').length;
+    const b1 = document.getElementById('badge-empresa-mis-cargas');
+    const b2 = document.getElementById('badge-empresa-tracking');
+    if(b1){ b1.style.display = myLoads? 'inline-block':'none'; b1.textContent = myLoads; }
+    if(b2){ b2.style.display = trackingActivos? 'inline-block':'none'; b2.textContent = trackingActivos; }
+  }
+  if(state.user?.role==='transportista'){
+    const approvedByLoad = new Set(state.proposals.filter(p=>p.status==='approved').map(p=>p.loadId));
+    const ofertas = state.loads.filter(l=>l.owner!==state.user?.name && !approvedByLoad.has(l.id)).length;
+    const misPost = state.proposals.filter(p=>p.carrier===state.user?.name).length;
+    const misEnvios = state.proposals.filter(p=>p.carrier===state.user?.name && p.status==='approved').length;
+    const trackingActivos = state.proposals.filter(p=>p.carrier===state.user?.name && p.status==='approved' && (p.shipStatus||'pendiente')!=='entregado').length;
+    const setBadge = (id,val)=>{ const el=document.getElementById(id); if(!el) return; el.style.display = val? 'inline-block':'none'; el.textContent = val; };
+    setBadge('badge-transp-ofertas', ofertas);
+    setBadge('badge-transp-mis-postulaciones', misPost);
+    setBadge('badge-transp-mis-envios', misEnvios);
+    setBadge('badge-transp-tracking', trackingActivos);
+  }
+  if(state.user?.role==='sendix'){
+    const moderacion = state.proposals.filter(p=>p.status==='pending').length;
+    const threads = state.proposals.filter(p=>p.status==='approved');
+    const unread = threads.map(p=>computeUnread(threadIdFor(p))).reduce((a,b)=>a+b,0);
+    const b1 = document.getElementById('badge-sendix-moderacion');
+    const b2 = document.getElementById('badge-sendix-conversaciones');
+    if(b1){ b1.style.display = moderacion? 'inline-block':'none'; b1.textContent = moderacion; }
+    if(b2){ b2.style.display = unread? 'inline-block':'none'; b2.textContent = unread; }
+  }
 }
 
 // Init
