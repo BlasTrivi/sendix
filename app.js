@@ -92,6 +92,8 @@ function navigate(route){
   document.querySelector(`[data-route="${route}"]`).classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll(`.bottombar.visible .tab[data-nav="${route}"]`).forEach(t=>t.classList.add('active'));
+  // Marcar en body la ruta activa para estilos específicos (p.ej. conversaciones)
+  document.body.classList.toggle('route-conversaciones', route==='conversaciones');
   if(route!=='login') location.hash = route;
 
   if(route==='home') renderHome();
