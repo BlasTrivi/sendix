@@ -93,8 +93,9 @@ function navigate(route){
   document.querySelector(`[data-route="${route}"]`).classList.add('active');
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll(`.bottombar.visible .tab[data-nav="${route}"]`).forEach(t=>t.classList.add('active'));
-  // Marcar en body la ruta activa para estilos específicos (p.ej. conversaciones)
+  // Marcar en body la ruta activa para estilos específicos
   document.body.classList.toggle('route-conversaciones', route==='conversaciones');
+  document.body.classList.toggle('route-publicar', route==='publicar');
   if(route!=='login') location.hash = route;
 
   // Si entramos a conversaciones sin abrir explícitamente un chat, mostrar solo la lista
