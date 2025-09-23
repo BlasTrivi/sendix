@@ -11,15 +11,17 @@
   <!-- HEADER full-width con contenedor interno -->
   <header class="topbar">
     <div class="topbar-inner">
-      <div class="brand">
+      <div class="brand brand-left">
         <img src="assets/logo.png" class="logo" alt="SENDIX"/>
         <div>
           <h1 class="app-name">SENDIX</h1>
           <p class="tagline">Movemos tu mundo</p>
         </div>
       </div>
-      <!-- Badge con el usuario logueado + botón de salir -->
-      <div id="user-badge" class="user-badge"></div>
+      <div class="topbar-actions">
+        <div id="user-badge" class="user-badge">Perfil</div>
+        <button class="btn btn-ghost btn-logout">Salir</button>
+      </div>
     </div>
   </header>
 
@@ -28,22 +30,25 @@
     <main id="view-container">
       <!-- Vista: LOGIN -->
       <section data-route="login" class="view active">
-        <div class="hero">
-          <h2>Ingresá a SENDIX</h2>
-          <p class="muted">La app que agiliza, resuelve y conecta a empresas con transportistas.</p>
+        <div class="login-box">
+          <div class="login-avatar">
+            <img src="assets/logo.png" alt="Logo SENDIX" />
+          </div>
+          <h2 class="login-title">Ingresá a SENDIX</h2>
+          <p class="login-desc">La app que agiliza, resuelve y conecta a empresas con transportistas.</p>
+          <form id="login-form" class="form login-form" autocomplete="off">
+            <label>Tu nombre
+              <input name="name" placeholder="Ej: Carla / Nexo SENDIX" required/>
+            </label>
+            <fieldset class="roles">
+              <legend>Rol</legend>
+              <label class="radio"><input type="radio" name="role" value="empresa" checked/> Empresa</label>
+              <label class="radio"><input type="radio" name="role" value="transportista"/> Transportista</label>
+              <label class="radio"><input type="radio" name="role" value="sendix"/> SENDIX </label>
+            </fieldset>
+            <button class="btn btn-primary login-btn" type="submit">Entrar</button>
+          </form>
         </div>
-        <form id="login-form" class="form small" autocomplete="off">
-          <label>Tu nombre
-            <input name="name" placeholder="Ej: Carla / Nexo SENDIX" required/>
-          </label>
-          <fieldset class="roles">
-            <legend>Rol</legend>
-            <label class="radio"><input type="radio" name="role" value="empresa" checked/> Empresa</label>
-            <label class="radio"><input type="radio" name="role" value="transportista"/> Transportista</label>
-            <label class="radio"><input type="radio" name="role" value="sendix"/> SENDIX </label>
-          </fieldset>
-          <button class="btn btn-primary" type="submit">Entrar</button>
-        </form>
       </section>
 
       <!-- Vista: HOME -->

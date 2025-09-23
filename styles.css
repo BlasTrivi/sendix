@@ -250,3 +250,99 @@ hero { margin-bottom: 28px; }
 /* Como el header ya no está dentro de #app, #view-container puede volver a su padding normal */
 #view-container{ padding-top: 18px; }
 
+/* --------------------
+   Login mejorado y header alineado
+   -------------------- */
+.login-box {
+  max-width: 370px;
+  margin: 48px auto 0 auto;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 38px 32px 32px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+.login-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #eaf1f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(58,175,169,.10);
+  margin-bottom: 8px;
+}
+.login-avatar img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+  border-radius: 50%;
+}
+.login-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0;
+  text-align: center;
+}
+.login-desc {
+  color: var(--muted);
+  font-size: 1rem;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.login-form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.login-btn {
+  width: 100%;
+  margin-top: 10px;
+  font-size: 1.1rem;
+  padding: 14px 0;
+}
+.brand-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 0;
+}
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: 0;
+}
+.btn-logout {
+  font-size: 15px;
+  padding: 8px 16px;
+}
+@media (max-width: 600px) {
+  .login-box {
+    max-width: 98vw;
+    padding: 22px 8px 18px 8px;
+  }
+  .login-title {
+    font-size: 1.2rem;
+  }
+  .topbar-inner {
+    padding: 8px 4px;
+  }
+  .brand-left {
+    gap: 8px;
+  }
+  .topbar-actions {
+    gap: 6px;
+  }
+  .logo {
+    width: 32px;
+    height: 32px;
+  }
+}
+
