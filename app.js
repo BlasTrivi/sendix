@@ -141,12 +141,32 @@ function renderLoads(onlyMine=false){
 }
 function initPublishForm(){
   const form = document.getElementById('publish-form');
+  const preview = document.getElementById('publish-preview');
+  function updatePreview() {
+    const data = Object.fromEntries(new FormData(form).entries());
+    if(data.origen || data.destino || data.tipo || data.tamano || data.fecha) {
+      preview.style.display = 'block';
+      preview.innerHTML = `
+        <strong>Resumen de carga:</strong><br>
+        <span>📍 <b>Origen:</b> ${data.origen||'-'}</span><br>
+        <span>🎯 <b>Destino:</b> ${data.destino||'-'}</span><br>
+        <span>📦 <b>Tipo:</b> ${data.tipo||'-'}</span><br>
+        <span>📏 <b>Tamaño:</b> ${data.tamano||'-'}</span><br>
+        <span>📅 <b>Fecha:</b> ${data.fecha||'-'}</span>
+      `;
+    } else {
+      preview.style.display = 'none';
+      preview.innerHTML = '';
+    }
+  }
+  form.addEventListener('input', updatePreview);
   form.addEventListener('submit', (e)=>{
     e.preventDefault();
     if(state.user?.role!=='empresa'){ alert('Ingresá como Empresa.'); return; }
     const data = Object.fromEntries(new FormData(form).entries());
-    addLoad(data); form.reset(); alert('¡Publicada! Esperá postulaciones que Sendix moderará.'); navigate('mis-cargas');
+    addLoad(data); form.reset(); updatePreview(); alert('¡Publicada! Esperá postulaciones que Sendix moderará.'); navigate('mis-cargas');
   });
+  updatePreview();
 }
 function renderMyLoadsWithProposals(focus){
   const ul = document.getElementById('my-loads-with-proposals');

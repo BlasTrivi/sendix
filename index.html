@@ -118,15 +118,28 @@
 
       <!-- Resto de vistas (publicar, mis-cargas, ofertas, etc.) -->
       <section data-route="publicar" class="view">
-        <h2>Publicar carga</h2>
-        <form id="publish-form" class="form" autocomplete="off">
-          <label>Origen <input name="origen" required/></label>
-          <label>Destino <input name="destino" required/></label>
-          <label>Tipo <input name="tipo" placeholder="Palets, a granel..." required/></label>
-          <label>Tamaño <input name="tamano" placeholder="Ej: 10 pallets / 20 m³ / 8 tn" required/></label>
-          <label>Fecha <input type="date" name="fecha" required/></label>
-          <button class="btn btn-primary" type="submit">Publicar</button>
-        </form>
+        <div class="publish-box">
+          <h2 class="publish-title">Publicar nueva carga</h2>
+          <form id="publish-form" class="form publish-form" autocomplete="off">
+            <label><span>📍</span> Origen
+              <input name="origen" placeholder="Ciudad, dirección..." required/>
+            </label>
+            <label><span>🎯</span> Destino
+              <input name="destino" placeholder="Ciudad, dirección..." required/>
+            </label>
+            <label><span>📦</span> Tipo
+              <input name="tipo" placeholder="Palets, a granel..." required/>
+            </label>
+            <label><span>📏</span> Tamaño
+              <input name="tamano" placeholder="Ej: 10 pallets / 20 m³ / 8 tn" required/>
+            </label>
+            <label><span>📅</span> Fecha
+              <input type="date" name="fecha" required/>
+            </label>
+            <div id="publish-preview" class="publish-preview"></div>
+            <button class="btn btn-primary publish-btn" type="submit">Publicar carga</button>
+          </form>
+        </div>
         <h3 class="mt">Tus publicaciones</h3>
         <ul id="loads-list" class="list"></ul>
       </section>
