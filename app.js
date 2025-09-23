@@ -454,7 +454,6 @@ function renderChat(){
   const typing = document.getElementById('typing-indicator');
   const replyBar = document.getElementById('reply-bar');
   const replySnippet = document.getElementById('reply-snippet');
-  const quickReplies = document.getElementById('quick-replies');
   const attachPreviews = document.getElementById('attach-previews');
   const contextMenu = document.getElementById('context-menu');
   if(!state.activeThread){ box.innerHTML = '<div class="muted">Elegí una conversación.</div>'; title.textContent='Elegí una conversación'; topic.textContent=''; return; }
@@ -490,12 +489,7 @@ function renderChat(){
     if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); form.requestSubmit(); }
   });
 
-  // Quick replies
-  quickReplies?.querySelectorAll('[data-quick]')?.forEach(b=>b.addEventListener('click', ()=>{
-    ta.value = b.dataset.quick;
-    autoresize();
-    form.requestSubmit();
-  }));
+  // (quick replies removidos)
 
   // Adjuntos
   const btnAttach = document.getElementById('btn-attach');

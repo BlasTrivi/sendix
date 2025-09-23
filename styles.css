@@ -92,7 +92,7 @@ body, html {
 
 /* Reset mínimo y base tipográfica */
 *{box-sizing:border-box}
-html,body{height:100%}
+html,body{height:100%; overflow:hidden}
 body{
   margin:0;
   font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;
@@ -104,7 +104,7 @@ body{
 }
 
 /* Layout principal */
-#app{display:flex; flex-direction:column; min-height:100vh; max-width:980px; margin:0 auto}
+#app{display:flex; flex-direction:column; height:100vh; max-width:980px; margin:0 auto}
 
 .brand{display:flex; gap:12px; align-items:center}
 .logo{width:40px; height:40px; object-fit:contain; border-radius:8px; background:#fff}
@@ -113,7 +113,7 @@ body{
 .user-badge{color:var(--muted); font-size:14px}
 
 /* Contenedor de vistas */
-#view-container{flex:1; padding:18px; padding-bottom:98px}
+#view-container{flex:1; padding:18px; padding-bottom:98px; overflow:auto}
 
 /* Animación de vistas */
 .view{display:none; animation:fade .15s ease-out}
@@ -225,8 +225,6 @@ body{
 .bubble .attachments img{max-width:160px; max-height:120px; border-radius:10px; border:1px solid var(--border)}
 .reply-bar{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 12px; border-bottom:1px solid var(--border); background:#fff}
 .reply-bar .reply-snippet{font-size:12px; color:var(--muted)}
-.quick-replies{display:flex; gap:6px; padding:8px 12px; border-bottom:1px dashed var(--border); background:#fff; flex-wrap:wrap}
-.quick-replies .chip{display:inline-block; padding:6px 8px; border-radius:999px; font-size:12px; background:#eef6f7; border:1px solid var(--border); color:var(--primary); cursor:pointer}
 .attach-previews{display:flex; gap:8px; padding:8px 12px; flex-wrap:wrap}
 .attach-previews img{max-width:120px; max-height:96px; border-radius:10px; border:1px solid var(--border)}
 .context-menu{position:absolute; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow: var(--shadow-sm); display:grid;}
