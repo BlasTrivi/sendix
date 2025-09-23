@@ -120,7 +120,7 @@ body{
 #view-container{flex:1; padding:18px; padding-bottom: calc(var(--bbar-h) + 98px + var(--safe-bottom)); overflow:auto}
 /* En la vista de chat, evitamos scroll de la vista completa y lo dejamos al panel de mensajes */
 .view.active[data-route="conversaciones"]{ overflow:hidden; display:flex; flex-direction:column; min-height:0; }
-.view.active[data-route="conversaciones"] .chat-wrapper{ flex:0 0 auto; min-height:0; display:grid; grid-template-columns: 320px 1fr; height: var(--chat-h); margin-bottom: calc(var(--bbar-h) + 12px); }
+.view.active[data-route="conversaciones"] .chat-wrapper{ flex:0 0 auto; min-height:0; display:grid; grid-template-columns: 1fr; height: var(--chat-h); margin-bottom: calc(var(--bbar-h) + 12px); }
 
 /* En la ruta de conversaciones, no scrollear el contenedor general */
 body.route-conversaciones #view-container{ overflow: hidden; padding-bottom: 18px; }
@@ -326,18 +326,14 @@ select option{color:#0E2F44; background:#fff}
 /* --------------------
    Responsivo
    -------------------- */
-@media (max-width: 860px){
-  .chat-wrapper{grid-template-columns:1fr}
-  /* Altura ya unificada por --chat-h (clamp) */
-  /* En móviles: mostrar sólo sidebar o sólo chat-main según estado */
-  body.route-conversaciones .chat-sidebar{ display:block }
-  body.route-conversaciones.chat-has-active .chat-sidebar{ display:none }
-  body.route-conversaciones .chat-main{ display:none }
-  body.route-conversaciones.chat-has-active .chat-main{ display:flex }
-  /* Botón atrás visible en móviles cuando hay chat activo */
-  .chat-main-left{ display:flex; align-items:flex-start; gap:8px }
-  body.route-conversaciones.chat-has-active #chat-back{ display:inline-flex !important }
-}
+/* Mostrar solo lista o solo chat en conversaciones (todas las resoluciones) */
+body.route-conversaciones .chat-sidebar{ display:block }
+body.route-conversaciones.chat-has-active .chat-sidebar{ display:none }
+body.route-conversaciones .chat-main{ display:none }
+body.route-conversaciones.chat-has-active .chat-main{ display:flex }
+/* Botón atrás visible cuando hay chat activo */
+.chat-main-left{ display:flex; align-items:flex-start; gap:8px }
+body.route-conversaciones.chat-has-active #chat-back{ display:inline-flex !important }
 
 #tracking-search{max-width:220px}
 #tracking-list .row .btn{padding:8px 12px}
