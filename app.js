@@ -142,6 +142,40 @@ function renderLoads(onlyMine=false){
 function initPublishForm(){
   const form = document.getElementById('publish-form');
   const preview = document.getElementById('publish-preview');
+
+  // Sugerencias de ubicaciones reales usando Nominatim
+  function suggestLocation(inputId, suggestBoxId, cb) {
+    const input = document.getElementById(inputId);
+    const box = document.getElementById(suggestBoxId);
+    input.addEventListener('input', async () => {
+      const q = input.value.trim();
+      if(q.length < 3) { box.innerHTML = ''; return; }
+      box.innerHTML = '<span class="muted">Buscando...</span>';
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`);
+        const data = await res.json();
+        if(data.length) {
+          box.innerHTML = data.map(loc => `<div class="suggest-item" data-lat="${loc.lat}" data-lon="${loc.lon}" data-name="${loc.display_name}">${loc.display_name}</div>`).join('');
+          box.querySelectorAll('.suggest-item').forEach(item => {
+            item.onclick = () => {
+              input.value = item.dataset.name;
+              box.innerHTML = '';
+              cb({ name: item.dataset.name, lat: parseFloat(item.dataset.lat), lon: parseFloat(item.dataset.lon) });
+            };
+          });
+        } else {
+          box.innerHTML = '<span class="muted">Sin resultados</span>';
+        }
+      } catch(e) {
+        box.innerHTML = '<span class="muted">Error de búsqueda</span>';
+      }
+    });
+  }
+
+  let origenCoords = null, destinoCoords = null;
+  suggestLocation('input-origen', 'suggest-origen', (loc) => { origenCoords = loc; });
+  suggestLocation('input-destino', 'suggest-destino', (loc) => { destinoCoords = loc; });
+
   function updatePreview() {
     const data = Object.fromEntries(new FormData(form).entries());
     if(data.origen || data.destino || data.tipo || data.tamano || data.fecha) {
@@ -164,7 +198,15 @@ function initPublishForm(){
     e.preventDefault();
     if(state.user?.role!=='empresa'){ alert('Ingresá como Empresa.'); return; }
     const data = Object.fromEntries(new FormData(form).entries());
-    addLoad(data); form.reset(); updatePreview(); alert('¡Publicada! Esperá postulaciones que Sendix moderará.'); navigate('mis-cargas');
+    addLoad({
+      ...data,
+      origenCoords: origenCoords ? [origenCoords.lat, origenCoords.lon] : undefined,
+      destinoCoords: destinoCoords ? [destinoCoords.lat, destinoCoords.lon] : undefined
+    });
+    form.reset();
+    updatePreview();
+    alert('¡Publicada! Esperá postulaciones que Sendix moderará.');
+    navigate('mis-cargas');
   });
   updatePreview();
 }
