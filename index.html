@@ -29,14 +29,14 @@
     <main id="view-container">
       <!-- Vista: LOGIN -->
       <section data-route="login" class="view active">
-        <div class="login-box">
+        <div class="login-box shadow-lg">
           <div class="login-avatar">
             <img src="assets/logo.png" alt="Logo SENDIX" />
           </div>
-          <h2 class="login-title">Ingresá a SENDIX</h2>
-          <p class="login-desc">La app que agiliza, resuelve y conecta a empresas con transportistas.</p>
+          <h2 class="login-title">Bienvenido a <span style="color:var(--accent)">SENDIX</span></h2>
+          <p class="login-desc">La app que agiliza, resuelve y conecta a empresas con transportistas.<br><span class="muted">Simple, rápida y segura.</span></p>
           <form id="login-form" class="form login-form" autocomplete="off">
-            <label>Tu nombre
+            <label><span>👤</span> Tu nombre
               <input name="name" placeholder="Ej: Carla / Nexo SENDIX" required/>
             </label>
             <fieldset class="roles">
@@ -52,10 +52,10 @@
 
       <!-- Vista: HOME -->
       <section data-route="home" class="view">
-        <div class="hero">
-          <h2>Publicá, postulá o moderá ofertas. Chateá y coordiná cuando haya match.</h2>
-          <p class="muted">Más carga, menos gestion, mas rapido, menos costos.</p>
-          <button class="btn btn-primary" id="btn-start">Empezar</button>
+        <div class="hero hero-main shadow-md">
+          <h2 class="hero-title">Publicá, postulá o moderá ofertas</h2>
+          <p class="muted hero-desc">Chateá y coordiná cuando haya match.<br><span style="color:var(--accent)">Más carga, menos gestión, más rápido, menos costos.</span></p>
+          <button class="btn btn-primary hero-btn" id="btn-start">Empezar</button>
         </div>
 
         <!-- Tarjetas EMPRESA -->
@@ -118,7 +118,7 @@
 
       <!-- Resto de vistas (publicar, mis-cargas, ofertas, etc.) -->
       <section data-route="publicar" class="view">
-        <div class="publish-box">
+        <div class="publish-box shadow-lg">
           <h2 class="publish-title">Publicar nueva carga</h2>
           <form id="publish-form" class="form publish-form" autocomplete="off">
             <label><span>📍</span> Origen
@@ -145,32 +145,32 @@
       </section>
 
       <section data-route="mis-cargas" class="view">
-        <h2>Mis cargas y propuestas (filtradas por SENDIX)</h2>
+  <h2 class="section-title">Mis cargas y propuestas <span class="badge">filtradas por SENDIX</span></h2>
         <ul id="my-loads-with-proposals" class="list"></ul>
       </section>
 
       <section data-route="ofertas" class="view">
-        <h2>Ofertas disponibles</h2>
+  <h2 class="section-title">Ofertas disponibles <span class="badge">para transportistas</span></h2>
         <ul id="offers-list" class="list"></ul>
       </section>
 
       <section data-route="mis-postulaciones" class="view">
-        <h2>Mis postulaciones</h2>
+  <h2 class="section-title">Mis postulaciones <span class="badge">historial</span></h2>
         <ul id="my-proposals" class="list"></ul>
       </section>
 
       <section data-route="mis-envios" class="view">
-        <h2>Mis envíos (aprobados)</h2>
+  <h2 class="section-title">Mis envíos <span class="badge">aprobados</span></h2>
         <ul id="shipments" class="list"></ul>
       </section>
 
       <section data-route="moderacion" class="view">
-        <h2>Bandeja de propuestas (moderación)</h2>
+  <h2 class="section-title">Bandeja de propuestas <span class="badge">moderación</span></h2>
         <ul id="inbox" class="list"></ul>
       </section>
 
       <section data-route="conversaciones" class="view">
-        <div class="chat-wrapper">
+  <div class="chat-wrapper shadow-md">
           <aside class="chat-sidebar">
             <div class="chat-sidebar-header">
               <h2>Chats</h2>
@@ -198,7 +198,7 @@
       </section>
 
       <section data-route="resumen" class="view">
-        <h2>Resumen (demo)</h2>
+  <h2 class="section-title">Resumen <span class="badge">demo</span></h2>
         <ul class="list">
           <li class="row"><span>Publicaciones activas</span><strong id="m-total-loads">0</strong></li>
           <li class="row"><span>Postulaciones totales</span><strong id="m-total-proposals">0</strong></li>
@@ -210,7 +210,7 @@
       </section>
 
       <section data-route="tracking" class="view">
-        <h2>Envío en curso (demo global)</h2>
+  <h2 class="section-title">Envío en curso <span class="badge">demo global</span></h2>
         <div class="row">
           <select id="tracking-shipment-select"></select>
           <label class="row" style="gap:6px; align-items:center">

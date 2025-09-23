@@ -32,6 +32,105 @@
   --shadow-lg: 0 24px 48px rgba(14,47,68,.18);
   --ring: 0 0 0 3px rgba(58,175,169,.25);
 }
+/* --------------------
+   Mejoras visuales generales
+   -------------------- */
+.shadow-lg { box-shadow: 0 24px 48px rgba(14,47,68,.18)!important; }
+.shadow-md { box-shadow: 0 10px 28px rgba(14,47,68,.14)!important; }
+.shadow-sm { box-shadow: 0 4px 12px rgba(14,47,68,.08)!important; }
+
+.hero-main {
+  background: linear-gradient(120deg, #eaf7f6 60%, #fff 100%);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px 24px 24px;
+  margin-bottom: 24px;
+  text-align: center;
+}
+.hero-title {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.hero-desc {
+  font-size: 1.1rem;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.hero-btn {
+  font-size: 1.1rem;
+  padding: 14px 0;
+  width: 100%;
+  max-width: 260px;
+  margin: 0 auto;
+  box-shadow: var(--shadow-md);
+}
+
+.section-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.badge {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.95em;
+  box-shadow: var(--shadow-sm);
+}
+
+.publish-box, .login-box {
+  transition: box-shadow .18s, transform .18s;
+}
+.publish-box:hover, .login-box:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 32px 64px rgba(14,47,68,.22);
+}
+
+.card {
+  transition: box-shadow .18s, transform .18s;
+}
+.card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 18px 36px rgba(58,175,169,.18);
+}
+
+.chat-wrapper {
+  border-radius: var(--radius-lg);
+  background: #f8fcfd;
+}
+
+.list li {
+  transition: box-shadow .15s, transform .15s;
+}
+.list li:hover {
+  transform: scale(1.01);
+  box-shadow: 0 8px 24px rgba(58,175,169,.10);
+}
+
+body, html {
+  scroll-behavior: smooth;
+}
+
+@media (max-width: 600px) {
+  .hero-main {
+    padding: 18px 6px 14px 6px;
+    font-size: 1rem;
+  }
+  .hero-title {
+    font-size: 1.2rem;
+  }
+  .section-title {
+    font-size: 1.05rem;
+    gap: 6px;
+  }
+}
 
 /* Reset mínimo y base tipográfica */
 *{box-sizing:border-box}
