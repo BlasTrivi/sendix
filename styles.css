@@ -37,8 +37,8 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   /* Altura actual de la barra inferior (dinámica por JS) */
   --bbar-h: 64px;
-  /* Altura fija del recuadro de chat en escritorio */
-  --chat-h: 540px;
+  /* Altura del recuadro de chat unificada (se adapta sin estirarse de más) */
+  --chat-h: clamp(480px, 70vh, 760px);
 }
 /* --------------------
    Mejoras visuales generales
@@ -222,8 +222,8 @@ body.route-conversaciones #view-container{ overflow: hidden; padding-bottom: 18p
 .thread-item{display:flex; align-items:center; gap:12px; padding:12px; border:none; border-radius:14px; cursor:pointer; transition: background .15s ease}
 .thread-item{ min-height: 48px; }
 .thread-item:hover{background:#eef6f7}
-.thread-title{font-weight:700; color:var(--primary)}
-.thread-sub{color:var(--muted); font-size:12px}
+.thread-title{font-weight:700; color:var(--primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.thread-sub{color:var(--muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .thread-badge{margin-left:auto}
 
 .chat-main{background:var(--card); border:1px solid var(--border); border-radius:var(--radius-lg); display:flex; flex-direction:column; box-shadow: var(--shadow-sm); overflow:hidden; height: 100%; min-height:0}
@@ -278,8 +278,24 @@ body.route-conversaciones #view-container{ overflow: hidden; padding-bottom: 18p
 .chat-box.big{ scrollbar-width: none; -ms-overflow-style: none; }
 .chat-box.big::-webkit-scrollbar{ width: 0; height: 0; }
 
-.thread-list{ scrollbar-width: none; -ms-overflow-style: none; }
+.thread-list{ scrollbar-width: none; -ms-overflow-style: none; position: relative }
 .thread-list::-webkit-scrollbar{ width: 0; height: 0; }
+
+/* Fades para la lista de hilos */
+.thread-list::before,
+.thread-list::after{
+  content: "";
+  position: absolute;
+  left: 0; right: 0;
+  height: 16px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s ease;
+}
+.thread-list::before{ top:0; background: linear-gradient(to bottom, #ffffff 30%, rgba(255,255,255,0)); border-top-left-radius: 16px; border-top-right-radius: 16px; }
+.thread-list::after{ bottom:0; background: linear-gradient(to top, #ffffff 30%, rgba(255,255,255,0)); border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
+.thread-list.show-top-fade::before{ opacity:1 }
+.thread-list.show-bottom-fade::after{ opacity:1 }
 
 /* --------------------
    Selects
@@ -312,8 +328,7 @@ select option{color:#0E2F44; background:#fff}
    -------------------- */
 @media (max-width: 860px){
   .chat-wrapper{grid-template-columns:1fr}
-  /* En pantallas pequeñas hacemos el recuadro del chat proporcional a la altura de la ventana */
-  .view.active[data-route="conversaciones"] .chat-wrapper{ height: 70vh; }
+  /* Altura ya unificada por --chat-h (clamp) */
   /* En móviles: mostrar sólo sidebar o sólo chat-main según estado */
   body.route-conversaciones .chat-sidebar{ display:block }
   body.route-conversaciones.chat-has-active .chat-sidebar{ display:none }

@@ -431,6 +431,18 @@ function renderThreads(){
     threadsForCurrentUser().forEach(p=>markThreadRead(threadIdFor(p)));
     renderThreads();
   });
+  // Fades en la lista de hilos
+  updateThreadsFades();
+  ul.addEventListener('scroll', updateThreadsFades, { passive: true });
+}
+
+function updateThreadsFades(){
+  const ul = document.getElementById('threads');
+  if(!ul) return;
+  const atTop = ul.scrollTop <= 0;
+  const atBottom = Math.abs(ul.scrollHeight - ul.clientHeight - ul.scrollTop) < 1;
+  ul.classList.toggle('show-top-fade', !atTop);
+  ul.classList.toggle('show-bottom-fade', !atBottom);
 }
 
 // Notificación al entregar: mensaje del sistema en el hilo para la empresa y resto de participantes
