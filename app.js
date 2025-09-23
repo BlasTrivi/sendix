@@ -35,13 +35,12 @@ function save(){
 function updateBottomBarHeight(){
   try{
     const root = document.documentElement;
-    const safeBottomRaw = getComputedStyle(root).getPropertyValue('--safe-bottom').trim();
-    const safeBottom = parseFloat(safeBottomRaw || '0') || 0;
     const bar = document.querySelector('.bottombar.visible');
     let h = 0;
     if(bar){
       const rect = bar.getBoundingClientRect();
-      h = Math.max(0, Math.round(rect.height - safeBottom));
+      // Usar la altura real de la barra (incluye padding y safe-area)
+      h = Math.max(0, Math.round(rect.height));
     }
     // Guardrail: valores razonables (0-200px)
     if(!(h >= 0 && h <= 200)) h = 64;
@@ -114,6 +113,8 @@ function navigate(route){
   if(route==='resumen'){ try{ requireRole('sendix'); renderMetrics(); }catch(e){} }
   if(route==='tracking') renderTracking();
   if(route==='conversaciones') reflectMobileChatState(); else document.body.classList.remove('chat-has-active');
+  // Recalcular altura por si la UI cambió
+  updateBottomBarHeight();
   // Reset del flag luego de navegar
   state.justOpenedChat = false;
 }

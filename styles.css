@@ -117,7 +117,7 @@ body{
 .user-badge{color:var(--muted); font-size:14px}
 
 /* Contenedor de vistas */
-#view-container{flex:1; padding:18px; padding-bottom: calc(var(--bbar-h) + 98px + var(--safe-bottom)); overflow:auto}
+#view-container{flex:1; padding:18px; padding-bottom: calc(var(--bbar-h) + 110px + var(--safe-bottom)); overflow:auto}
 /* Ocultar visualmente la barra de scroll en la ruta Publicar (manteniendo desplazamiento) */
 body.route-publicar #view-container{ scrollbar-width: none; -ms-overflow-style: none; }
 body.route-publicar #view-container::-webkit-scrollbar{ width: 0; height: 0; }
@@ -138,7 +138,7 @@ body.route-conversaciones #view-container{ overflow: hidden; padding-bottom: 18p
 /* --------------------
    Cards (tarjetas de home y list items)
    -------------------- */
-.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:20px}
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:20px; margin-bottom: 28px}
 .card{
   background:var(--card);
   border:1px solid var(--border);
@@ -199,7 +199,7 @@ body.route-conversaciones #view-container{ overflow: hidden; padding-bottom: 18p
 /* --------------------
    Listas
    -------------------- */
-.list{list-style:none; padding:0; margin:8px 0; display:grid; gap:10px}
+.list{list-style:none; padding:0; margin:8px 0 28px 0; display:grid; gap:10px}
 .list li{
   background:var(--card); border:1px solid var(--border); border-radius: var(--radius);
   padding:12px; color:var(--text); box-shadow: var(--shadow-sm);
@@ -364,7 +364,7 @@ body.route-conversaciones.chat-has-active #chat-back{ display:inline-flex !impor
 .cards .card[data-nav] .btn-ghost{ position: relative; z-index: 1; }
 
 @media (max-width: 720px){
-  #view-container{ padding: 12px; padding-bottom: 96px; }
+  #view-container{ padding: 12px; padding-bottom: calc(var(--bbar-h) + 90px + var(--safe-bottom)); }
   .cards{ grid-template-columns: 1fr 1fr; gap: 12px; }
   .card{ padding: 12px; border-radius: 16px; }
   .card h3{ font-size: 1rem; }
@@ -409,7 +409,7 @@ body.route-conversaciones.chat-has-active #chat-back{ display:inline-flex !impor
 }
 
 /* Como el header ya no está dentro de #app, mantenemos padding dinámico para la barra inferior */
-#view-container{ padding-top: 18px; padding-bottom: calc(var(--bbar-h) + 98px + var(--safe-bottom)); }
+#view-container{ padding-top: 18px; padding-bottom: calc(var(--bbar-h) + 110px + var(--safe-bottom)); }
 
 /* --------------------
    Publicar carga mejorado
