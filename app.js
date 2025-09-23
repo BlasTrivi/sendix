@@ -531,6 +531,7 @@ function renderTracking(){
   if(mapBox){
     mapBox.innerHTML = '';
     if(current){
+      const l = state.loads.find(x=>x.id===current.loadId);
       // SVG con fondo tipo mapa y animación de camión
       mapBox.innerHTML = `
         <svg id="svg-tracking" viewBox="0 0 600 180" width="100%" height="180" style="background: linear-gradient(135deg,#eaf1f6 60%,#cfe5e8 100%); border-radius:16px;">
@@ -540,10 +541,11 @@ function renderTracking(){
           <circle class="tracking-step" cx="200" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
           <circle class="tracking-step" cx="360" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
           <circle class="tracking-step" cx="560" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
-          <text x="40" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">${current.origen || 'Origen'}</text>
+          <text x="40" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">${l?.origen || 'Origen'}</text>
           <text x="200" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">En carga</text>
           <text x="360" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">En camino</text>
-          <text x="560" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">${current.destino || 'Destino'}</text>
+          <text x="560" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">${l?.destino || 'Destino'}</text>
+          <!-- Camión -->
           <image id="tracking-truck" x="40" y="74" width="38" height="28" xlink:href="https://cdn-icons-png.flaticon.com/512/2921/2921822.png" />
         </svg>
       `;
@@ -555,15 +557,37 @@ function renderTracking(){
           const idx = ['pendiente','en-carga','en-camino','entregado'].indexOf(current.shipStatus||'pendiente');
           const start = parseFloat(truck.getAttribute('x'));
           const end = steps[idx] - 19;
+          const baseY = 74; // y de referencia para el camión
+          const amplitude = 10; // altura de la onda senoidal
+          const cycles = 1.5; // cantidad de ondas en el trayecto
+          const totalFrames = 40;
           let frame = 0;
-          const totalFrames = 30;
+          const easeInOut = (t)=> t<0.5 ? 2*t*t : -1+(4-2*t)*t; // suavizado
           function animate(){
             frame++;
-            const x = start + (end-start)*(frame/totalFrames);
+            const t = Math.min(frame/totalFrames, 1);
+            const te = easeInOut(t);
+            const x = start + (end-start)*te;
+            // Y con movimiento senoidal respecto al avance
+            const y = baseY - amplitude * Math.sin(2*Math.PI*cycles*te);
             truck.setAttribute('x', x);
+            truck.setAttribute('y', y);
             if(frame < totalFrames) requestAnimationFrame(animate);
           }
-          animate();
+          if(Math.abs(end-start) < 0.5){
+            // Si ya está en el destino, hacer una pequeña oscilación sutil
+            const wiggleFrames = 25; let f=0;
+            function wiggle(){
+              f++;
+              const t = f/wiggleFrames;
+              const y = baseY - (amplitude/2) * Math.sin(2*Math.PI*1*t);
+              truck.setAttribute('y', y);
+              if(f<wiggleFrames) requestAnimationFrame(wiggle);
+            }
+            wiggle();
+          } else {
+            animate();
+          }
         }
       }, 100);
     }
