@@ -531,31 +531,41 @@ function renderTracking(){
   if(mapBox){
     mapBox.innerHTML = '';
     if(current){
-      // Animación SVG simulada de recorrido
+      // SVG con fondo tipo mapa y animación de camión
       mapBox.innerHTML = `
-        <svg viewBox="0 0 600 120" width="100%" height="120">
-          <rect x="40" y="60" width="520" height="12" rx="6" fill="#eaf1f6" stroke="#E3EDF2" />
-          <circle class="tracking-step" cx="40" cy="66" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
-          <circle class="tracking-step" cx="200" cy="66" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
-          <circle class="tracking-step" cx="360" cy="66" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
-          <circle class="tracking-step" cx="560" cy="66" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
-          <text x="40" y="105" text-anchor="middle" font-size="15" fill="#5A6C79">${current.origen || 'Origen'}</text>
-          <text x="200" y="105" text-anchor="middle" font-size="15" fill="#5A6C79">En carga</text>
-          <text x="360" y="105" text-anchor="middle" font-size="15" fill="#5A6C79">En camino</text>
-          <text x="560" y="105" text-anchor="middle" font-size="15" fill="#5A6C79">${current.destino || 'Destino'}</text>
-          <image id="tracking-truck" x="40" y="38" width="38" height="28" xlink:href="https://cdn-icons-png.flaticon.com/512/2921/2921822.png" />
+        <svg id="svg-tracking" viewBox="0 0 600 180" width="100%" height="180" style="background: linear-gradient(135deg,#eaf1f6 60%,#cfe5e8 100%); border-radius:16px;">
+          <rect x="40" y="90" width="520" height="12" rx="6" fill="#d0e6f7" stroke="#b3cde0" />
+          <polyline points="40,96 120,60 200,96 280,60 360,96 440,60 560,96" fill="none" stroke="#8bb7d6" stroke-width="4" stroke-dasharray="8 6" />
+          <circle class="tracking-step" cx="40" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
+          <circle class="tracking-step" cx="200" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
+          <circle class="tracking-step" cx="360" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
+          <circle class="tracking-step" cx="560" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
+          <text x="40" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">${current.origen || 'Origen'}</text>
+          <text x="200" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">En carga</text>
+          <text x="360" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">En camino</text>
+          <text x="560" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">${current.destino || 'Destino'}</text>
+          <image id="tracking-truck" x="40" y="74" width="38" height="28" xlink:href="https://cdn-icons-png.flaticon.com/512/2921/2921822.png" />
         </svg>
-        <script>
-          (function(){
-            var truck = document.getElementById('tracking-truck');
-            if(truck){
-              var steps = [40, 200, 360, 560];
-              var idx = ['pendiente','en-carga','en-camino','entregado'].indexOf(current.shipStatus||'pendiente');
-              truck.setAttribute('x', steps[idx] - 19);
-            }
-          })();
-        </script>
       `;
+      // Animación JS para mover el camión
+      setTimeout(()=>{
+        const truck = document.getElementById('tracking-truck');
+        if(truck){
+          const steps = [40, 200, 360, 560];
+          const idx = ['pendiente','en-carga','en-camino','entregado'].indexOf(current.shipStatus||'pendiente');
+          const start = parseFloat(truck.getAttribute('x'));
+          const end = steps[idx] - 19;
+          let frame = 0;
+          const totalFrames = 30;
+          function animate(){
+            frame++;
+            const x = start + (end-start)*(frame/totalFrames);
+            truck.setAttribute('x', x);
+            if(frame < totalFrames) requestAnimationFrame(animate);
+          }
+          animate();
+        }
+      }, 100);
     }
   }
 
