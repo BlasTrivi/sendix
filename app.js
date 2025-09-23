@@ -508,6 +508,7 @@ function renderChat(){
     </div>`;
   }).join('') || '<div class="muted">Sin mensajes aún.</div>';
   box.scrollTop = box.scrollHeight;
+  updateChatFades();
   markThreadRead(state.activeThread);
   const form = document.getElementById('chat-form');
   const ta = document.getElementById('chat-textarea');
@@ -610,6 +611,17 @@ function renderChat(){
     state.activeShipmentProposalId = p.id;
     navigate('tracking');
   };
+  // Fades en scroll
+  box.addEventListener('scroll', updateChatFades, { passive: true });
+}
+
+function updateChatFades(){
+  const box = document.getElementById('chat-box');
+  if(!box) return;
+  const atTop = box.scrollTop <= 0;
+  const atBottom = Math.abs(box.scrollHeight - box.clientHeight - box.scrollTop) < 1;
+  box.classList.toggle('show-top-fade', !atTop);
+  box.classList.toggle('show-bottom-fade', !atBottom);
 }
 
 // Indicador de escritura (simulado local)
@@ -894,6 +906,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // Ajustar altura de barra inferior al cargar y al redimensionar
   updateBottomBarHeight();
   window.addEventListener('resize', ()=>updateBottomBarHeight());
+  window.addEventListener('resize', ()=>updateChatFades());
 });
 
 // helpers chat
