@@ -531,45 +531,31 @@ function renderTracking(){
   if(mapBox){
     mapBox.innerHTML = '';
     if(current){
-      async function getCoords(city) {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`);
-        const data = await res.json();
-        if(data.length) return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-        return null;
-      }
-      (async () => {
-        let origen = await getCoords(current.origen || 'Buenos Aires');
-        let destino = await getCoords(current.destino || 'Rosario');
-        if(!origen) origen = [-34.6037, -58.3816];
-        if(!destino) destino = [-32.9468, -60.6393];
-        if(window.trackingMap) { window.trackingMap.remove(); }
-        window.trackingMap = L.map('tracking-map').setView(origen, 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(window.trackingMap);
-        const route = [origen, destino];
-        const polyline = L.polyline(route, {color: '#0E2F44', weight: 5, opacity: 0.7}).addTo(window.trackingMap);
-        window.trackingMap.fitBounds(polyline.getBounds());
-        L.marker(origen).addTo(window.trackingMap).bindPopup('Origen: ' + (current.origen || ''));
-        L.marker(destino).addTo(window.trackingMap).bindPopup('Destino: ' + (current.destino || ''));
-        let vehicle = current.vehicle || 'camion';
-        let iconUrl = vehicle.toLowerCase().includes('auto') ? 'https://cdn-icons-png.flaticon.com/512/481/481106.png'
-          : vehicle.toLowerCase().includes('moto') ? 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png'
-          : vehicle.toLowerCase().includes('bicicleta') ? 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png'
-          : 'https://cdn-icons-png.flaticon.com/512/2921/2921822.png';
-        const truckIcon = L.icon({
-          iconUrl,
-          iconSize: [38, 38],
-          iconAnchor: [19, 19],
-          popupAnchor: [0, -19]
-        });
-        let stepIdx = SHIP_STEPS.indexOf(current.shipStatus||'pendiente');
-        let progress = stepIdx / (SHIP_STEPS.length-1);
-        const lat = origen[0] + (destino[0] - origen[0]) * progress;
-        const lng = origen[1] + (destino[1] - origen[1]) * progress;
-        if(window.truckMarker) window.truckMarker.remove();
-        window.truckMarker = L.marker([lat, lng], {icon: truckIcon}).addTo(window.trackingMap).bindPopup(vehicle.charAt(0).toUpperCase()+vehicle.slice(1)+' en ruta');
-      })();
+      // Animación SVG simulada de recorrido
+      mapBox.innerHTML = `
+        <svg viewBox="0 0 600 120" width="100%" height="120">
+          <rect x="40" y="60" width="520" height="12" rx="6" fill="#eaf1f6" stroke="#E3EDF2" />
+          <circle class="tracking-step" cx="40" cy="66" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
+          <circle class="tracking-step" cx="200" cy="66" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
+          <circle class="tracking-step" cx="360" cy="66" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
+          <circle class="tracking-step" cx="560" cy="66" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
+          <text x="40" y="105" text-anchor="middle" font-size="15" fill="#5A6C79">${current.origen || 'Origen'}</text>
+          <text x="200" y="105" text-anchor="middle" font-size="15" fill="#5A6C79">En carga</text>
+          <text x="360" y="105" text-anchor="middle" font-size="15" fill="#5A6C79">En camino</text>
+          <text x="560" y="105" text-anchor="middle" font-size="15" fill="#5A6C79">${current.destino || 'Destino'}</text>
+          <image id="tracking-truck" x="40" y="38" width="38" height="28" xlink:href="https://cdn-icons-png.flaticon.com/512/2921/2921822.png" />
+        </svg>
+        <script>
+          (function(){
+            var truck = document.getElementById('tracking-truck');
+            if(truck){
+              var steps = [40, 200, 360, 560];
+              var idx = ['pendiente','en-carga','en-camino','entregado'].indexOf(current.shipStatus||'pendiente');
+              truck.setAttribute('x', steps[idx] - 19);
+            }
+          })();
+        </script>
+      `;
     }
   }
 
