@@ -963,7 +963,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // Volver a la lista de chats en móviles
     state.activeThread = null; save(); renderChat(); renderThreads(); reflectMobileChatState();
   };
-  // Hook de consola para mostrar avisos centrados
+  // Overlay central reutilizable (alert/console)
   try {
     const overlay = document.getElementById('notice-overlay');
     const headEl = document.getElementById('notice-head');
@@ -976,32 +976,53 @@ document.addEventListener('DOMContentLoaded', ()=>{
         warn: console.warn.bind(console),
         error: console.error.bind(console)
       };
-      function showNotice(kind, args){
-        const text = args.map(a=>{
-          if(a instanceof Error) return a.stack || a.message;
-          if(typeof a === 'object'){
-            try{ return JSON.stringify(a, null, 2); }catch{ return String(a); }
-          }
-          return String(a);
-        }).join(' ');
-        // estilo de encabezado por tipo
+      function openNotice({ title='Aviso', message='', kind='info', okText='Aceptar' }={}){
+        // Estilos por tipo
         headEl.classList.remove('warn','error');
         if(kind==='warn') headEl.classList.add('warn');
         if(kind==='error') headEl.classList.add('error');
-        titleEl.textContent = kind==='log' ? 'Aviso' : (kind==='warn' ? 'Atención' : 'Error');
-        bodyEl.textContent = text;
+        // Contenido
+        titleEl.textContent = title;
+        bodyEl.textContent = message;
+        okBtn.textContent = okText;
+        // Mostrar
         overlay.style.display = 'flex';
         overlay.classList.add('show');
+        // Foco en botón
+        setTimeout(()=>{ try{ okBtn.focus(); }catch{} }, 0);
       }
       function hideNotice(){ overlay.classList.remove('show'); overlay.style.display='none'; }
       okBtn.addEventListener('click', hideNotice);
       overlay.addEventListener('click', (e)=>{ if(e.target===overlay) hideNotice(); });
       document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') hideNotice(); });
-  // Modo: mostrar solo warn/error como aviso; logs solo van a consola
-  window.__SHOW_LOG_OVERLAY__ = false; // podés poner true si querés ver logs como aviso
-  console.log = (...args)=>{ original.log(...args); if(window.__SHOW_LOG_OVERLAY__) showNotice('log', args); };
-  console.warn = (...args)=>{ original.warn(...args); showNotice('warn', args); };
-  console.error = (...args)=>{ original.error(...args); showNotice('error', args); };
+      // Exponer helpers globales
+      window.showNotice = openNotice;
+      window.hideNotice = hideNotice;
+      // Reemplazar alert nativo por modal centrado
+      window.alert = (msg)=>{
+        try{
+          openNotice({ title:'Aviso', message: String(msg ?? ''), kind:'info', okText:'Aceptar' });
+        }catch{ /* no-op */ }
+      };
+      // Hook de consola: solo warn/error generan aviso; logs quedan en consola
+      window.__SHOW_LOG_OVERLAY__ = false; // true para forzar overlay en logs
+      console.log = (...args)=>{
+        original.log(...args);
+        if(window.__SHOW_LOG_OVERLAY__){
+          const text = args.map(a=> a instanceof Error ? (a.stack||a.message) : (typeof a==='object'? (()=>{ try{return JSON.stringify(a,null,2)}catch{return String(a)} })() : String(a)) ).join(' ');
+          openNotice({ title:'Aviso', message:text, kind:'info', okText:'Aceptar' });
+        }
+      };
+      console.warn = (...args)=>{
+        original.warn(...args);
+        const text = args.map(a=> a instanceof Error ? (a.stack||a.message) : (typeof a==='object'? (()=>{ try{return JSON.stringify(a,null,2)}catch{return String(a)} })() : String(a)) ).join(' ');
+        openNotice({ title:'Atención', message:text, kind:'warn', okText:'Aceptar' });
+      };
+      console.error = (...args)=>{
+        original.error(...args);
+        const text = args.map(a=> a instanceof Error ? (a.stack||a.message) : (typeof a==='object'? (()=>{ try{return JSON.stringify(a,null,2)}catch{return String(a)} })() : String(a)) ).join(' ');
+        openNotice({ title:'Error', message:text, kind:'error', okText:'Aceptar' });
+      };
     }
   } catch {}
 });
