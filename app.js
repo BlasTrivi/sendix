@@ -30,6 +30,26 @@ function save(){
   localStorage.setItem('sendix.step', state.trackingStep);
 }
 
+// Actualiza la variable CSS --bbar-h según la barra inferior visible
+function updateBottomBarHeight(){
+  try{
+    const root = document.documentElement;
+    const safeBottomRaw = getComputedStyle(root).getPropertyValue('--safe-bottom').trim();
+    const safeBottom = parseFloat(safeBottomRaw || '0') || 0;
+    const bar = document.querySelector('.bottombar.visible');
+    let h = 0;
+    if(bar){
+      const rect = bar.getBoundingClientRect();
+      h = Math.max(0, Math.round(rect.height - safeBottom));
+    }
+    // Guardrail: valores razonables (0-200px)
+    if(!(h >= 0 && h <= 200)) h = 64;
+    root.style.setProperty('--bbar-h', h + 'px');
+  }catch(e){
+    // Fallback silencioso (no bloquear la app)
+  }
+}
+
 function genId(){ return Math.random().toString(36).slice(2,10); }
 function threadIdFor(p){ return `${p.loadId}__${p.carrier}`; }
 
@@ -129,6 +149,8 @@ function updateChrome(){
   document.getElementById('nav-empresa').classList.toggle('visible', state.user?.role==='empresa');
   document.getElementById('nav-transportista').classList.toggle('visible', state.user?.role==='transportista');
   document.getElementById('nav-sendix').classList.toggle('visible', state.user?.role==='sendix');
+  // Recalcular altura de la barra inferior cuando cambie la visibilidad por rol
+  updateBottomBarHeight();
 }
 
 // EMPRESA
@@ -867,6 +889,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
       }
     }
   });
+  // Ajustar altura de barra inferior al cargar y al redimensionar
+  updateBottomBarHeight();
+  window.addEventListener('resize', ()=>updateBottomBarHeight());
 });
 
 // helpers chat
