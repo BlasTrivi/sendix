@@ -997,9 +997,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
       okBtn.addEventListener('click', hideNotice);
       overlay.addEventListener('click', (e)=>{ if(e.target===overlay) hideNotice(); });
       document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') hideNotice(); });
-      console.log = (...args)=>{ original.log(...args); showNotice('log', args); };
-      console.warn = (...args)=>{ original.warn(...args); showNotice('warn', args); };
-      console.error = (...args)=>{ original.error(...args); showNotice('error', args); };
+  // Modo: mostrar solo warn/error como aviso; logs solo van a consola
+  window.__SHOW_LOG_OVERLAY__ = false; // podés poner true si querés ver logs como aviso
+  console.log = (...args)=>{ original.log(...args); if(window.__SHOW_LOG_OVERLAY__) showNotice('log', args); };
+  console.warn = (...args)=>{ original.warn(...args); showNotice('warn', args); };
+  console.error = (...args)=>{ original.error(...args); showNotice('error', args); };
     }
   } catch {}
 });
