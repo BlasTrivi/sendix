@@ -245,11 +245,12 @@ body{
 .chat-input #btn-attach{ border:1px solid var(--border); background:#fff; }
 .chat-input .btn-primary{ box-shadow: 0 8px 18px rgba(243,146,0,.25); }
 
-/* Scrollbar visible en escritorio para el chat */
-.chat-box.big{ scrollbar-width: thin; scrollbar-color: rgba(14,47,68,.35) transparent; }
-.chat-box.big::-webkit-scrollbar{ width: 10px; }
-.chat-box.big::-webkit-scrollbar-thumb{ background: rgba(14,47,68,.35); border-radius: 10px; }
-.chat-box.big::-webkit-scrollbar-track{ background: transparent; }
+/* Ocultar barra de scroll (se mantiene el desplazamiento interno) */
+.chat-box.big{ scrollbar-width: none; -ms-overflow-style: none; }
+.chat-box.big::-webkit-scrollbar{ width: 0; height: 0; }
+
+.thread-list{ scrollbar-width: none; -ms-overflow-style: none; }
+.thread-list::-webkit-scrollbar{ width: 0; height: 0; }
 
 /* --------------------
    Selects
