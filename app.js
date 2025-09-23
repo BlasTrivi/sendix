@@ -545,8 +545,19 @@ function renderTracking(){
           <text x="200" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">En carga</text>
           <text x="360" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">En camino</text>
           <text x="560" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">${l?.destino || 'Destino'}</text>
-          <!-- Camión -->
-          <image id="tracking-truck" x="40" y="74" width="38" height="28" xlink:href="https://cdn-icons-png.flaticon.com/512/2921/2921822.png" />
+          <!-- Camión inline (grupo) centrado en su posición con transform -->
+          <g id="tracking-truck" transform="translate(40,96)">
+            <!-- Chasis -->
+            <rect x="-22" y="-12" width="30" height="18" rx="3" fill="#0E2F44" />
+            <!-- Cabina -->
+            <rect x="8" y="-10" width="20" height="14" rx="2" fill="#4A90E2" />
+            <rect x="8" y="-10" width="7" height="10" fill="#ffffff" opacity="0.9" />
+            <!-- Ruedas -->
+            <circle cx="-10" cy="6" r="5" fill="#333" />
+            <circle cx="12" cy="6" r="5" fill="#333" />
+            <circle cx="-10" cy="6" r="2" fill="#888" />
+            <circle cx="12" cy="6" r="2" fill="#888" />
+          </g>
         </svg>
       `;
       // Animación JS para mover el camión
@@ -555,33 +566,36 @@ function renderTracking(){
         if(truck){
           const steps = [40, 200, 360, 560];
           const idx = ['pendiente','en-carga','en-camino','entregado'].indexOf(current.shipStatus||'pendiente');
-          const start = parseFloat(truck.getAttribute('x'));
-          const end = steps[idx] - 19;
-          const baseY = 74; // y de referencia para el camión
-          const amplitude = 10; // altura de la onda senoidal
-          const cycles = 1.5; // cantidad de ondas en el trayecto
-          const totalFrames = 40;
+          const startX = steps[0]; // arranca desde el primer punto para que siempre se note
+          const endX = steps[idx];
+          const pathY = 96; // línea central de los hitos
+          const amplitude = 14; // altura de la onda senoidal (más visible)
+          const cycles = 2; // cantidad de ondas en el trayecto
+          const totalFrames = 55;
           let frame = 0;
           const easeInOut = (t)=> t<0.5 ? 2*t*t : -1+(4-2*t)*t; // suavizado
           function animate(){
             frame++;
             const t = Math.min(frame/totalFrames, 1);
             const te = easeInOut(t);
-            const x = start + (end-start)*te;
-            // Y con movimiento senoidal respecto al avance
-            const y = baseY - amplitude * Math.sin(2*Math.PI*cycles*te);
-            truck.setAttribute('x', x);
-            truck.setAttribute('y', y);
+            const x = startX + (endX-startX)*te;
+            const yOffset = amplitude * Math.sin(2*Math.PI*cycles*te);
+            const y = pathY + yOffset;
+            // Rotación leve según la pendiente de la onda: dy/dx
+            const dYdX = (amplitude * (2*Math.PI*cycles) * Math.cos(2*Math.PI*cycles*te)) / Math.max(1, (endX-startX));
+            let angle = Math.atan2(dYdX, 1) * (180/Math.PI);
+            angle = Math.max(-14, Math.min(14, angle));
+            truck.setAttribute('transform', `translate(${x},${y}) rotate(${angle})`);
             if(frame < totalFrames) requestAnimationFrame(animate);
           }
-          if(Math.abs(end-start) < 0.5){
-            // Si ya está en el destino, hacer una pequeña oscilación sutil
-            const wiggleFrames = 25; let f=0;
+          if(Math.abs(endX-startX) < 0.5){
+            // Pequeña oscilación en el lugar
+            const wiggleFrames = 35; let f=0;
             function wiggle(){
               f++;
               const t = f/wiggleFrames;
-              const y = baseY - (amplitude/2) * Math.sin(2*Math.PI*1*t);
-              truck.setAttribute('y', y);
+              const y = pathY + (amplitude/2) * Math.sin(2*Math.PI*1*t);
+              truck.setAttribute('transform', `translate(${endX},${y}) rotate(0)`);
               if(f<wiggleFrames) requestAnimationFrame(wiggle);
             }
             wiggle();
