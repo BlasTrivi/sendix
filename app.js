@@ -402,6 +402,11 @@ function renderThreads(){
   `).join('') : '<li class="muted" style="padding:12px">Sin conversaciones</li>';
   ul.querySelectorAll('[data-chat]').forEach(li=>li.addEventListener('click', ()=>openChatByProposalId(li.dataset.chat)));
   document.getElementById('chat-search')?.addEventListener('input', ()=>renderThreads());
+  // Marcar todo como leído
+  document.getElementById('mark-all-read')?.addEventListener('click', ()=>{
+    threadsForCurrentUser().forEach(p=>markThreadRead(threadIdFor(p)));
+    renderThreads();
+  });
 }
 
 // Notificación al entregar: mensaje del sistema en el hilo para la empresa y resto de participantes
@@ -446,6 +451,12 @@ function renderChat(){
   const box = document.getElementById('chat-box');
   const topic = document.getElementById('chat-topic');
   const title = document.getElementById('chat-title');
+  const typing = document.getElementById('typing-indicator');
+  const replyBar = document.getElementById('reply-bar');
+  const replySnippet = document.getElementById('reply-snippet');
+  const quickReplies = document.getElementById('quick-replies');
+  const attachPreviews = document.getElementById('attach-previews');
+  const contextMenu = document.getElementById('context-menu');
   if(!state.activeThread){ box.innerHTML = '<div class="muted">Elegí una conversación.</div>'; title.textContent='Elegí una conversación'; topic.textContent=''; return; }
   const p = state.proposals.find(x=>threadIdFor(x)===state.activeThread);
   if(!p){ box.innerHTML='<div class="muted">Conversación no disponible.</div>'; return; }
@@ -453,23 +464,142 @@ function renderChat(){
   title.textContent = `${l.origen} → ${l.destino}`;
   topic.textContent = `Empresa: ${l.owner} · Transportista: ${p.carrier} · Tamaño: ${l.tamano||'-'} · Nexo: SENDIX`;
   const msgs = state.messages.filter(m=>m.threadId===state.activeThread).sort((a,b)=>a.ts-b.ts);
-  box.innerHTML = msgs.map(m=>`<div class="bubble ${m.from===state.user?.name?'me':'other'}"><strong>${m.from} (${m.role})</strong><br>${m.text}<br><span class="muted" style="font-size:11px">${new Date(m.ts).toLocaleString()}</span></div>`).join('') || '<div class="muted">Sin mensajes aún.</div>';
+  box.innerHTML = msgs.map(m=>{
+    const reply = m.replyTo ? msgs.find(x=>x.ts===m.replyTo) : null;
+    const replyHtml = reply ? `<div class="bubble-reply"><strong>${reply.from}</strong>: ${escapeHtml(reply.text).slice(0,120)}${reply.text.length>120?'…':''}</div>` : '';
+    const atts = Array.isArray(m.attach)||m.attach? (m.attach||[]) : [];
+    const attHtml = atts.length? `<div class="attachments">${atts.map(src=>`<img src="${src}" alt="adjunto"/>`).join('')}</div>` : '';
+    return `<div class="bubble ${m.from===state.user?.name?'me':'other'}" data-ts="${m.ts}">
+      ${replyHtml}
+      <strong>${escapeHtml(m.from)} (${escapeHtml(m.role)})</strong><br>${linkify(escapeHtml(m.text))}
+      ${attHtml}
+      <br><span class="muted" style="font-size:11px">${new Date(m.ts).toLocaleString()}</span>
+    </div>`;
+  }).join('') || '<div class="muted">Sin mensajes aún.</div>';
   box.scrollTop = box.scrollHeight;
   markThreadRead(state.activeThread);
   const form = document.getElementById('chat-form');
+  const ta = document.getElementById('chat-textarea');
+  // Autosize textarea
+  function autoresize(){ if(!ta) return; ta.style.height='auto'; ta.style.height = Math.min(160, Math.max(40, ta.scrollHeight)) + 'px'; }
+  ta?.addEventListener('input', ()=>{ autoresize(); showTyping(); });
+  autoresize();
+
+  // Enviar con Enter, saltos con Shift+Enter
+  ta?.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); form.requestSubmit(); }
+  });
+
+  // Quick replies
+  quickReplies?.querySelectorAll('[data-quick]')?.forEach(b=>b.addEventListener('click', ()=>{
+    ta.value = b.dataset.quick;
+    autoresize();
+    form.requestSubmit();
+  }));
+
+  // Adjuntos
+  const btnAttach = document.getElementById('btn-attach');
+  const inputAttach = document.getElementById('file-attach');
+  let tempAttach = [];
+  btnAttach?.addEventListener('click', ()=> inputAttach?.click());
+  inputAttach?.addEventListener('change', ()=>{
+    const files = Array.from(inputAttach.files||[]);
+    tempAttach = [];
+    attachPreviews.innerHTML = '';
+    files.slice(0,6).forEach(f=>{
+      const url = URL.createObjectURL(f);
+      tempAttach.push(url);
+      const img = document.createElement('img');
+      img.src = url; img.alt='adjunto';
+      attachPreviews.appendChild(img);
+    });
+    attachPreviews.style.display = tempAttach.length? 'flex':'none';
+  });
+
+  // Reply a mensaje
+  let replyToTs = null;
+  function setReply(m){ replyToTs = m?.ts||null; if(replyToTs){ replyBar.style.display='flex'; replySnippet.textContent = m.text.slice(0,120); } else { replyBar.style.display='none'; replySnippet.textContent=''; } }
+  document.getElementById('reply-cancel')?.addEventListener('click', ()=> setReply(null));
+  // Menú contextual sobre mensajes
+  box.querySelectorAll('.bubble')?.forEach(bub=>{
+    bub.addEventListener('contextmenu', (e)=>{
+      e.preventDefault();
+      const ts = Number(bub.dataset.ts);
+      const msg = msgs.find(x=>x.ts===ts);
+      if(!msg) return;
+      openContextMenu(e.pageX, e.pageY, msg);
+    });
+    // En móvil: long press
+    let t; let startX=0; let startY=0; let swiped=false;
+    const THRESH=56;
+    bub.addEventListener('touchstart', (e)=>{
+      swiped=false; startX=e.touches[0].clientX; startY=e.touches[0].clientY;
+      t=setTimeout(()=>{ const ts=Number(bub.dataset.ts); const msg=msgs.find(x=>x.ts===ts); if(msg) openContextMenu(e.touches[0].pageX, e.touches[0].pageY, msg); }, 550);
+    }, {passive:true});
+    bub.addEventListener('touchmove', (e)=>{
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+      if(Math.abs(dy) > 30) { clearTimeout(t); return; }
+      if(dx > 8 && !swiped){ bub.style.transform = `translateX(${Math.min(dx, THRESH)}px)`; }
+      if(dx > THRESH && !swiped){
+        swiped=true; clearTimeout(t);
+        const ts=Number(bub.dataset.ts); const msg=msgs.find(x=>x.ts===ts); if(msg) setReply(msg);
+        bub.style.transform = '';
+      }
+    }, {passive:true});
+    bub.addEventListener('touchend', ()=>{ clearTimeout(t); bub.style.transform=''; });
+  });
+
+  function openContextMenu(x,y,msg){
+    contextMenu.style.display='grid';
+    contextMenu.style.left = x+'px';
+    contextMenu.style.top = y+'px';
+    const off = (ev)=>{ if(!contextMenu.contains(ev.target)) { contextMenu.style.display='none'; document.removeEventListener('click', off); } };
+    document.addEventListener('click', off);
+    contextMenu.querySelector('[data-action="reply"]').onclick = ()=>{ setReply(msg); contextMenu.style.display='none'; };
+    contextMenu.querySelector('[data-action="copy"]').onclick = ()=>{ navigator.clipboard?.writeText(msg.text); contextMenu.style.display='none'; };
+    contextMenu.querySelector('[data-action="delete"]').onclick = ()=>{
+      // eliminar localmente (solo para mí): en demo, borramos del array
+      const idx = state.messages.findIndex(m=>m.ts===msg.ts && m.threadId===state.activeThread);
+      if(idx>=0){ state.messages.splice(idx,1); save(); renderChat(); }
+      contextMenu.style.display='none';
+    };
+  }
+
   form.onsubmit = (e)=>{
     e.preventDefault();
     const data = Object.fromEntries(new FormData(form).entries());
-    if(!data.message.trim()) return;
-    state.messages.push({ threadId: state.activeThread, from: state.user.name, role: state.user.role, text: data.message.trim(), ts: Date.now() });
+    const text = String(data.message||'').trim();
+    if(!text) return;
+    const msg = { threadId: state.activeThread, from: state.user.name, role: state.user.role, text, ts: Date.now() };
+    if(replyToTs) msg.replyTo = replyToTs;
+    if(tempAttach.length) msg.attach = [...tempAttach];
+    state.messages.push(msg);
     save();
-    form.reset();
+    form.reset(); autoresize(); hideTyping(); setReply(null);
+    tempAttach.splice(0); attachPreviews.innerHTML=''; attachPreviews.style.display='none'; inputAttach.value='';
     renderChat(); markThreadRead(state.activeThread); renderThreads();
   };
   document.getElementById('open-related-tracking').onclick = ()=>{
     state.activeShipmentProposalId = p.id;
     navigate('tracking');
   };
+}
+
+// Indicador de escritura (simulado local)
+let typingTimeout;
+function showTyping(){
+  const el = document.getElementById('typing-indicator');
+  if(!el) return;
+  el.style.display = 'block';
+  el.textContent = 'Escribiendo…';
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(hideTyping, 1200);
+}
+function hideTyping(){
+  const el = document.getElementById('typing-indicator');
+  if(!el) return;
+  el.style.display = 'none';
 }
 
 // (limpieza) funciones de tracking antiguas removidas
@@ -725,4 +855,27 @@ document.addEventListener('DOMContentLoaded', ()=>{
   initNav(); initLogin(); initPublishForm(); updateChrome();
   const start = state.user ? (location.hash.replace('#','')||'home') : 'login';
   navigate(start);
+  // Shortcut: Ctrl/Cmd+K para buscar chats
+  document.addEventListener('keydown', (e)=>{
+    if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){
+      const route = (location.hash.replace('#','')||'home');
+      if(route==='conversaciones'){
+        e.preventDefault();
+        document.getElementById('chat-search')?.focus();
+      }
+    }
+  });
 });
+
+// helpers chat
+function escapeHtml(str){
+  return (str||'')
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;');
+}
+function linkify(text){
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.replace(urlRegex, (url)=>`<a href="${url}" target="_blank" rel="noopener">${url}</a>`);
+}

@@ -188,6 +188,7 @@
             <div class="chat-sidebar-header">
               <h2>Chats</h2>
               <input id="chat-search" placeholder="Buscar…" />
+              <button class="btn" id="mark-all-read">Marcar todo como leído</button>
             </div>
             <ul id="threads" class="thread-list"></ul>
           </aside>
@@ -201,11 +202,32 @@
                 <button class="btn" id="open-related-tracking">Ver envío</button>
               </div>
             </div>
+            <div id="typing-indicator" class="typing-indicator" style="display:none"></div>
+            <div id="reply-bar" class="reply-bar" style="display:none">
+              <div class="reply-bar-content">
+                <strong>Responder a</strong>
+                <div id="reply-snippet" class="reply-snippet"></div>
+              </div>
+              <button class="btn btn-ghost" id="reply-cancel" title="Cancelar">✕</button>
+            </div>
+            <div id="quick-replies" class="quick-replies">
+              <button class="chip" data-quick="Voy en camino">Voy en camino</button>
+              <button class="chip" data-quick="Llegué al depósito">Llegué al depósito</button>
+              <button class="chip" data-quick="Te envío ubicación">Te envío ubicación</button>
+            </div>
             <div id="chat-box" class="chat-box big"></div>
+            <div id="attach-previews" class="attach-previews" style="display:none"></div>
             <form id="chat-form" class="chat-input">
-              <input name="message" placeholder="Escribí un mensaje…" required/>
+              <input id="file-attach" type="file" accept="image/*" multiple style="display:none" />
+              <button class="btn" type="button" id="btn-attach" title="Adjuntar">📎</button>
+              <textarea id="chat-textarea" name="message" placeholder="Escribí un mensaje… (Enter para enviar · Shift+Enter salto de línea)" rows="1" required></textarea>
               <button class="btn btn-primary" type="submit">Enviar</button>
             </form>
+            <div id="context-menu" class="context-menu" style="display:none">
+              <button data-action="reply">Responder</button>
+              <button data-action="copy">Copiar</button>
+              <button data-action="delete">Eliminar para mí</button>
+            </div>
           </section>
         </div>
       </section>
