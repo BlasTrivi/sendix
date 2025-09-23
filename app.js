@@ -506,32 +506,39 @@ function renderTracking(){
   ul.querySelectorAll('[data-select]').forEach(b=>b.addEventListener('click', ()=>{ state.activeShipmentProposalId = b.dataset.select; save(); renderTracking(); }));
   ul.querySelectorAll('[data-chat]').forEach(b=>b.addEventListener('click', ()=>openChatByProposalId(b.dataset.chat)));
 
-  // Mapa interactivo con Leaflet
+  // Tracking visual (SVG animado)
   const current = state.proposals.find(p=>p.id===state.activeShipmentProposalId);
   const mapBox = document.getElementById('tracking-map');
   if(mapBox){
     mapBox.innerHTML = '';
     if(current){
       const l = state.loads.find(x=>x.id===current.loadId);
+      const stepNames = ['pendiente','en-carga','en-camino','entregado'];
+      const idxTarget = stepNames.indexOf(current.shipStatus||'pendiente');
       // SVG con fondo tipo mapa y animación de camión
       mapBox.innerHTML = `
         <svg id="svg-tracking" viewBox="0 0 600 180" width="100%" height="180" style="background: linear-gradient(135deg,#eaf1f6 60%,#cfe5e8 100%); border-radius:16px;">
+          <defs>
+            <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="3" stdDeviation="2" flood-color="#0E2F44" flood-opacity=".25"/>
+            </filter>
+          </defs>
           <rect x="40" y="90" width="520" height="12" rx="6" fill="#d0e6f7" stroke="#b3cde0" />
-          <polyline points="40,96 120,60 200,96 280,60 360,96 440,60 560,96" fill="none" stroke="#8bb7d6" stroke-width="4" stroke-dasharray="8 6" />
-          <circle class="tracking-step" cx="40" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
-          <circle class="tracking-step" cx="200" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
-          <circle class="tracking-step" cx="360" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
-          <circle class="tracking-step" cx="560" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
+          <polyline points="40,96 120,60 200,96 280,60 360,96 440,60 560,96" fill="none" stroke="#3AAFA9" stroke-width="4" stroke-dasharray="8 6" />
+          <circle class="tracking-step ${idxTarget>=0?'active':''}" cx="40" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
+          <circle class="tracking-step ${idxTarget>=1?'active':''}" cx="200" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
+          <circle class="tracking-step ${idxTarget>=2?'active':''}" cx="360" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
+          <circle class="tracking-step ${idxTarget>=3?'active':''}" cx="560" cy="96" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
           <text x="40" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">${l?.origen || 'Origen'}</text>
           <text x="200" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">En carga</text>
           <text x="360" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">En camino</text>
           <text x="560" y="140" text-anchor="middle" font-size="15" fill="#5A6C79">${l?.destino || 'Destino'}</text>
           <!-- Camión inline (grupo) centrado en su posición con transform -->
-          <g id="tracking-truck" transform="translate(40,96)">
+          <g id="tracking-truck" transform="translate(40,96)" filter="url(#shadow)">
             <!-- Chasis -->
             <rect x="-22" y="-12" width="30" height="18" rx="3" fill="#0E2F44" />
             <!-- Cabina -->
-            <rect x="8" y="-10" width="20" height="14" rx="2" fill="#4A90E2" />
+            <rect x="8" y="-10" width="20" height="14" rx="2" fill="#3AAFA9" />
             <rect x="8" y="-10" width="7" height="10" fill="#ffffff" opacity="0.9" />
             <!-- Ruedas -->
             <circle cx="-10" cy="6" r="5" fill="#333" />
@@ -546,13 +553,22 @@ function renderTracking(){
         const truck = document.getElementById('tracking-truck');
         if(truck){
           const steps = [40, 200, 360, 560];
-          const idx = ['pendiente','en-carga','en-camino','entregado'].indexOf(current.shipStatus||'pendiente');
-          const startX = steps[0]; // arranca desde el primer punto para que siempre se note
-          const endX = steps[idx];
+          const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          // Animar desde el paso previo guardado hacia el actual (por envío)
+          const lastId = mapBox.dataset.prevId || '';
+          let startIdx = parseInt(mapBox.dataset.prevIdx||'0');
+          if(lastId !== current.id) startIdx = 0;
+          const endIdx = idxTarget < 0 ? 0 : idxTarget;
+          const startX = steps[Math.max(0, Math.min(steps.length-1, startIdx))];
+          const endX = steps[Math.max(0, Math.min(steps.length-1, endIdx))];
+          // Guardar como nuevo punto de partida para la siguiente transición
+          mapBox.dataset.prevIdx = String(endIdx);
+          mapBox.dataset.prevId = current.id;
+
           const pathY = 96; // línea central de los hitos
-          const amplitude = 14; // altura de la onda senoidal (más visible)
-          const cycles = 2; // cantidad de ondas en el trayecto
-          const totalFrames = 55;
+          const amplitude = reduceMotion ? 6 : 18; // altura de la onda senoidal
+          const cycles = reduceMotion ? 1 : 2.2; // cantidad de ondas en el trayecto
+          const totalFrames = reduceMotion ? 30 : 60;
           let frame = 0;
           const easeInOut = (t)=> t<0.5 ? 2*t*t : -1+(4-2*t)*t; // suavizado
           function animate(){
@@ -563,9 +579,12 @@ function renderTracking(){
             const yOffset = amplitude * Math.sin(2*Math.PI*cycles*te);
             const y = pathY + yOffset;
             // Rotación leve según la pendiente de la onda: dy/dx
-            const dYdX = (amplitude * (2*Math.PI*cycles) * Math.cos(2*Math.PI*cycles*te)) / Math.max(1, (endX-startX));
-            let angle = Math.atan2(dYdX, 1) * (180/Math.PI);
-            angle = Math.max(-14, Math.min(14, angle));
+            let angle = 0;
+            if(!reduceMotion){
+              const dYdX = (amplitude * (2*Math.PI*cycles) * Math.cos(2*Math.PI*cycles*te)) / Math.max(1, Math.abs(endX-startX));
+              angle = Math.atan2(dYdX, 1) * (180/Math.PI);
+              angle = Math.max(-18, Math.min(18, angle));
+            }
             truck.setAttribute('transform', `translate(${x},${y}) rotate(${angle})`);
             if(frame < totalFrames) requestAnimationFrame(animate);
           }
