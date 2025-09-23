@@ -142,40 +142,6 @@ function renderLoads(onlyMine=false){
 function initPublishForm(){
   const form = document.getElementById('publish-form');
   const preview = document.getElementById('publish-preview');
-
-  // Sugerencias de ubicaciones reales usando Nominatim
-  function suggestLocation(inputId, suggestBoxId, cb) {
-    const input = document.getElementById(inputId);
-    const box = document.getElementById(suggestBoxId);
-    input.addEventListener('input', async () => {
-      const q = input.value.trim();
-      if(q.length < 3) { box.innerHTML = ''; return; }
-      box.innerHTML = '<span class="muted">Buscando...</span>';
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=5`);
-        const data = await res.json();
-        if(data.length) {
-          box.innerHTML = data.map(loc => `<div class="suggest-item" data-lat="${loc.lat}" data-lon="${loc.lon}" data-name="${loc.display_name}">${loc.display_name}</div>`).join('');
-          box.querySelectorAll('.suggest-item').forEach(item => {
-            item.onclick = () => {
-              input.value = item.dataset.name;
-              box.innerHTML = '';
-              cb({ name: item.dataset.name, lat: parseFloat(item.dataset.lat), lon: parseFloat(item.dataset.lon) });
-            };
-          });
-        } else {
-          box.innerHTML = '<span class="muted">Sin resultados</span>';
-        }
-      } catch(e) {
-        box.innerHTML = '<span class="muted">Error de búsqueda</span>';
-      }
-    });
-  }
-
-  let origenCoords = null, destinoCoords = null;
-  suggestLocation('input-origen', 'suggest-origen', (loc) => { origenCoords = loc; });
-  suggestLocation('input-destino', 'suggest-destino', (loc) => { destinoCoords = loc; });
-
   function updatePreview() {
     const data = Object.fromEntries(new FormData(form).entries());
     if(data.origen || data.destino || data.tipo || data.tamano || data.fecha) {
@@ -198,11 +164,7 @@ function initPublishForm(){
     e.preventDefault();
     if(state.user?.role!=='empresa'){ alert('Ingresá como Empresa.'); return; }
     const data = Object.fromEntries(new FormData(form).entries());
-    addLoad({
-      ...data,
-      origenCoords: origenCoords ? [origenCoords.lat, origenCoords.lon] : undefined,
-      destinoCoords: destinoCoords ? [destinoCoords.lat, destinoCoords.lon] : undefined
-    });
+    addLoad(data);
     form.reset();
     updatePreview();
     alert('¡Publicada! Esperá postulaciones que Sendix moderará.');
@@ -567,40 +529,47 @@ function renderTracking(){
   const current = state.proposals.find(p=>p.id===state.activeShipmentProposalId);
   const mapBox = document.getElementById('tracking-map');
   if(mapBox){
-    // Limpiar mapa anterior
     mapBox.innerHTML = '';
     if(current){
-      // Obtener coordenadas reales de origen/destino
-      let origen = current.origenCoords || [-34.6037, -58.3816];
-      let destino = current.destinoCoords || [-32.9468, -60.6393];
-      const route = [origen, destino];
-      if(window.trackingMap) { window.trackingMap.remove(); }
-      window.trackingMap = L.map('tracking-map').setView(origen, 6);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(window.trackingMap);
-      const polyline = L.polyline(route, {color: '#0E2F44', weight: 5, opacity: 0.7}).addTo(window.trackingMap);
-      window.trackingMap.fitBounds(polyline.getBounds());
-      L.marker(origen).addTo(window.trackingMap).bindPopup('Origen: ' + (current.origen || ''));
-      L.marker(destino).addTo(window.trackingMap).bindPopup('Destino: ' + (current.destino || ''));
-      // Icono dinámico según vehículo
-      let vehicle = current.vehicle || 'camion';
-      let iconUrl = vehicle.toLowerCase().includes('auto') ? 'https://cdn-icons-png.flaticon.com/512/481/481106.png'
-        : vehicle.toLowerCase().includes('moto') ? 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png'
-        : vehicle.toLowerCase().includes('bicicleta') ? 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png'
-        : 'https://cdn-icons-png.flaticon.com/512/2921/2921822.png';
-      const truckIcon = L.icon({
-        iconUrl,
-        iconSize: [38, 38],
-        iconAnchor: [19, 19],
-        popupAnchor: [0, -19]
-      });
-      let stepIdx = SHIP_STEPS.indexOf(current.shipStatus||'pendiente');
-      let progress = stepIdx / (SHIP_STEPS.length-1);
-      const lat = origen[0] + (destino[0] - origen[0]) * progress;
-      const lng = origen[1] + (destino[1] - origen[1]) * progress;
-      if(window.truckMarker) window.truckMarker.remove();
-      window.truckMarker = L.marker([lat, lng], {icon: truckIcon}).addTo(window.trackingMap).bindPopup(vehicle.charAt(0).toUpperCase()+vehicle.slice(1)+' en ruta');
+      async function getCoords(city) {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`);
+        const data = await res.json();
+        if(data.length) return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+        return null;
+      }
+      (async () => {
+        let origen = await getCoords(current.origen || 'Buenos Aires');
+        let destino = await getCoords(current.destino || 'Rosario');
+        if(!origen) origen = [-34.6037, -58.3816];
+        if(!destino) destino = [-32.9468, -60.6393];
+        if(window.trackingMap) { window.trackingMap.remove(); }
+        window.trackingMap = L.map('tracking-map').setView(origen, 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(window.trackingMap);
+        const route = [origen, destino];
+        const polyline = L.polyline(route, {color: '#0E2F44', weight: 5, opacity: 0.7}).addTo(window.trackingMap);
+        window.trackingMap.fitBounds(polyline.getBounds());
+        L.marker(origen).addTo(window.trackingMap).bindPopup('Origen: ' + (current.origen || ''));
+        L.marker(destino).addTo(window.trackingMap).bindPopup('Destino: ' + (current.destino || ''));
+        let vehicle = current.vehicle || 'camion';
+        let iconUrl = vehicle.toLowerCase().includes('auto') ? 'https://cdn-icons-png.flaticon.com/512/481/481106.png'
+          : vehicle.toLowerCase().includes('moto') ? 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png'
+          : vehicle.toLowerCase().includes('bicicleta') ? 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png'
+          : 'https://cdn-icons-png.flaticon.com/512/2921/2921822.png';
+        const truckIcon = L.icon({
+          iconUrl,
+          iconSize: [38, 38],
+          iconAnchor: [19, 19],
+          popupAnchor: [0, -19]
+        });
+        let stepIdx = SHIP_STEPS.indexOf(current.shipStatus||'pendiente');
+        let progress = stepIdx / (SHIP_STEPS.length-1);
+        const lat = origen[0] + (destino[0] - origen[0]) * progress;
+        const lng = origen[1] + (destino[1] - origen[1]) * progress;
+        if(window.truckMarker) window.truckMarker.remove();
+        window.truckMarker = L.marker([lat, lng], {icon: truckIcon}).addTo(window.trackingMap).bindPopup(vehicle.charAt(0).toUpperCase()+vehicle.slice(1)+' en ruta');
+      })();
     }
   }
 
