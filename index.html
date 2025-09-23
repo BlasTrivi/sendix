@@ -122,11 +122,15 @@
           <h2 class="publish-title">Publicar nueva carga</h2>
           <form id="publish-form" class="form publish-form" autocomplete="off">
             <label><span>📍</span> Origen
-              <input name="origen" placeholder="Ciudad, dirección..." required/>
+              <input name="origen" id="input-origen" placeholder="Origen" required autocomplete="off" />
             </label>
             <label><span>🎯</span> Destino
-              <input name="destino" placeholder="Ciudad, dirección..." required/>
+              <input name="destino" id="input-destino" placeholder="Destino" required autocomplete="off" />
             </label>
+            <div class="row" style="gap:12px">
+              <div id="suggest-origen" class="suggest-box"></div>
+              <div id="suggest-destino" class="suggest-box"></div>
+            </div>
             <label><span>📦</span> Tipo
               <input name="tipo" placeholder="Palets, a granel..." required/>
             </label>

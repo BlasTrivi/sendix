@@ -526,37 +526,37 @@ function renderTracking(){
     // Limpiar mapa anterior
     mapBox.innerHTML = '';
     if(current){
-      // Coordenadas demo: Buenos Aires y Rosario
-      let origen = [-34.6037, -58.3816];
-      let destino = [-32.9468, -60.6393];
-      // Si hay datos reales, podrías usar current.origen/destino
+      // Obtener coordenadas reales de origen/destino
+      let origen = current.origenCoords || [-34.6037, -58.3816];
+      let destino = current.destinoCoords || [-32.9468, -60.6393];
       const route = [origen, destino];
-      // Inicializar mapa
       if(window.trackingMap) { window.trackingMap.remove(); }
       window.trackingMap = L.map('tracking-map').setView(origen, 6);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
       }).addTo(window.trackingMap);
-      // Dibujar ruta
       const polyline = L.polyline(route, {color: '#0E2F44', weight: 5, opacity: 0.7}).addTo(window.trackingMap);
       window.trackingMap.fitBounds(polyline.getBounds());
-      // Marcadores de origen y destino
-      L.marker(origen).addTo(window.trackingMap).bindPopup('Origen: Buenos Aires').openPopup();
-      L.marker(destino).addTo(window.trackingMap).bindPopup('Destino: Rosario');
-      // Icono de camión
+      L.marker(origen).addTo(window.trackingMap).bindPopup('Origen: ' + (current.origen || ''));
+      L.marker(destino).addTo(window.trackingMap).bindPopup('Destino: ' + (current.destino || ''));
+      // Icono dinámico según vehículo
+      let vehicle = current.vehicle || 'camion';
+      let iconUrl = vehicle.toLowerCase().includes('auto') ? 'https://cdn-icons-png.flaticon.com/512/481/481106.png'
+        : vehicle.toLowerCase().includes('moto') ? 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png'
+        : vehicle.toLowerCase().includes('bicicleta') ? 'https://cdn-icons-png.flaticon.com/512/2972/2972185.png'
+        : 'https://cdn-icons-png.flaticon.com/512/2921/2921822.png';
       const truckIcon = L.icon({
-        iconUrl: 'https://cdn-icons-png.flaticon.com/512/2921/2921822.png',
+        iconUrl,
         iconSize: [38, 38],
         iconAnchor: [19, 19],
         popupAnchor: [0, -19]
       });
-      // Marcador animado del camión según estado
       let stepIdx = SHIP_STEPS.indexOf(current.shipStatus||'pendiente');
       let progress = stepIdx / (SHIP_STEPS.length-1);
       const lat = origen[0] + (destino[0] - origen[0]) * progress;
       const lng = origen[1] + (destino[1] - origen[1]) * progress;
       if(window.truckMarker) window.truckMarker.remove();
-      window.truckMarker = L.marker([lat, lng], {icon: truckIcon}).addTo(window.trackingMap).bindPopup('Camión en ruta');
+      window.truckMarker = L.marker([lat, lng], {icon: truckIcon}).addTo(window.trackingMap).bindPopup(vehicle.charAt(0).toUpperCase()+vehicle.slice(1)+' en ruta');
     }
   }
 
