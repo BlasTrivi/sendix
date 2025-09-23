@@ -309,7 +309,9 @@ function renderShipments(){
 // SENDIX: Moderación (filtrar) + acceso a chat de aprobados (cuando la empresa elija)
 function renderInbox(){
   const ul = document.getElementById('inbox');
+  // Solo propuestas que no han sido filtradas ni rechazadas
   const pending = state.proposals.filter(p=>p.status==='pending');
+  // Propuestas que han sido filtradas por SENDIX y no han sido aprobadas ni rechazadas
   const filteredList = state.proposals.filter(p=>p.status==='filtered');
   ul.innerHTML = `<h3>Pendientes</h3>` + (pending.length ? pending.map(p=>{
     const l = state.loads.find(x=>x.id===p.loadId);
@@ -337,7 +339,7 @@ function renderInbox(){
   ul.querySelectorAll('[data-filter]').forEach(b=>b.addEventListener('click', ()=>{
     const id = b.dataset.filter;
     const p = state.proposals.find(x=>x.id===id);
-    if(p){ p.status='filtered'; save(); renderInbox(); alert('Marcada como FILTRADA. La empresa decidirá.'); }
+    if(p && p.status==='pending'){ p.status='filtered'; save(); renderInbox(); alert('Marcada como FILTRADA. La empresa decidirá.'); }
   }));
   ul.querySelectorAll('[data-unfilter]').forEach(b=>b.addEventListener('click', ()=>{
     const id=b.dataset.unfilter; const p=state.proposals.find(x=>x.id===id);
