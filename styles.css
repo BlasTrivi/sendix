@@ -47,7 +47,8 @@
   transition: box-shadow .18s, transform .18s;
 }
 .tracking-step { transition: fill 0.4s, stroke 0.4s; filter: drop-shadow(0 2px 8px #0001); }
-.tracking-step.active { fill: #0E2F44; stroke: #0E2F44; }
+.tracking-step.active { fill: var(--accent); stroke: var(--accent); }
+.tracking-step.done { fill: var(--secondary); stroke: var(--secondary); }
 #tracking-truck { transition: transform 0.4s; }
 .card:hover {
   transform: translateY(-4px) scale(1.02);
