@@ -54,8 +54,9 @@ function genId(){ return Math.random().toString(36).slice(2,10); }
 function threadIdFor(p){ return `${p.loadId}__${p.carrier}`; }
 
 function computeUnread(threadId){
-  const last = (state.reads[threadId] && state.reads[threadId][state.user?.name]) || 0;
-  return state.messages.filter(m=>m.threadId===threadId && m.ts>last && m.from!==state.user?.name).length;
+  if(!state.user) return 0;
+  const last = (state.reads[threadId] && state.reads[threadId][state.user.name]) || 0;
+  return state.messages.filter(m=>m.threadId===threadId && m.ts>last && m.from!==state.user.name).length;
 }
 function unreadBadge(threadId){
   const u = computeUnread(threadId);
@@ -119,7 +120,8 @@ function navigate(route){
   state.justOpenedChat = false;
 }
 function initNav(){
-  document.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click', ()=>navigate(el.dataset.nav)));
+  // Evitar duplicar navegación en tarjetas: no adjuntar a .card[data-nav], las maneja el delegado global
+  document.querySelectorAll('[data-nav]:not(.card)').forEach(el=>el.addEventListener('click', ()=>navigate(el.dataset.nav)));
   // Si el usuario toca "Conversaciones" desde la barra, forzar vista de lista
   document.querySelectorAll('[data-nav="conversaciones"]').forEach(el=>{
     el.addEventListener('click', ()=>{ state.activeThread = null; state.justOpenedChat = false; });
@@ -421,6 +423,12 @@ function renderThreads(){
   if(navBadge){ navBadge.style.display = totalUnread? 'inline-block':'none'; navBadge.textContent = totalUnread; }
   const ul = document.getElementById('threads');
   const q = (document.getElementById('chat-search')?.value||'').toLowerCase();
+  // Precomputar último timestamp por hilo para evitar O(n^2)
+  const lastByThread = new Map();
+  for(let i=state.messages.length-1;i>=0;i--){
+    const m = state.messages[i];
+    if(!lastByThread.has(m.threadId)) lastByThread.set(m.threadId, m.ts);
+  }
   const items = myThreads.map(p=>{
     const l = state.loads.find(x=>x.id===p.loadId);
     const title = `${l?.origen} → ${l?.destino}`;
@@ -428,8 +436,7 @@ function renderThreads(){
     const unread = computeUnread(threadIdFor(p));
     const match = (title+' '+sub).toLowerCase().includes(q);
     const tId = threadIdFor(p);
-    const lastMsg = [...state.messages].reverse().find(m=>m.threadId===tId);
-    const lastTs = lastMsg?.ts || (p.createdAt ? new Date(p.createdAt).getTime() : 0);
+    const lastTs = lastByThread.get(tId) || (p.createdAt ? new Date(p.createdAt).getTime() : 0);
     return {p, l, title, sub, unread, match, lastTs};
   }).filter(x=>x.match).sort((a,b)=> b.lastTs - a.lastTs);
   ul.innerHTML = items.length ? items.map(({p, l, title, sub, unread})=>`
@@ -501,9 +508,6 @@ function openChatByProposalId(propId){
   save();
   navigate('conversaciones');
   if(state.activeThread) markThreadRead(state.activeThread);
-  renderThreads();
-  renderChat();
-  reflectMobileChatState();
 }
 function renderChat(){
   const box = document.getElementById('chat-box');
@@ -551,13 +555,13 @@ function renderChat(){
   const ta = document.getElementById('chat-textarea');
   // Autosize textarea
   function autoresize(){ if(!ta) return; ta.style.height='auto'; ta.style.height = Math.min(160, Math.max(40, ta.scrollHeight)) + 'px'; }
-  ta?.addEventListener('input', ()=>{ autoresize(); showTyping(); });
+  if(ta) ta.oninput = ()=>{ autoresize(); showTyping(); };
   autoresize();
 
   // Enviar con Enter, saltos con Shift+Enter
-  ta?.addEventListener('keydown', (e)=>{
+  if(ta) ta.onkeydown = (e)=>{
     if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); form.requestSubmit(); }
-  });
+  };
 
   // (quick replies removidos)
 
@@ -565,8 +569,8 @@ function renderChat(){
   const btnAttach = document.getElementById('btn-attach');
   const inputAttach = document.getElementById('file-attach');
   let tempAttach = [];
-  btnAttach?.addEventListener('click', ()=> inputAttach?.click());
-  inputAttach?.addEventListener('change', ()=>{
+  if(btnAttach) btnAttach.onclick = ()=> inputAttach?.click();
+  if(inputAttach) inputAttach.onchange = ()=>{
     const files = Array.from(inputAttach.files||[]);
     tempAttach = [];
     attachPreviews.innerHTML = '';
@@ -578,12 +582,13 @@ function renderChat(){
       attachPreviews.appendChild(img);
     });
     attachPreviews.style.display = tempAttach.length? 'flex':'none';
-  });
+  };
 
   // Reply a mensaje
   let replyToTs = null;
   function setReply(m){ replyToTs = m?.ts||null; if(replyToTs){ replyBar.style.display='flex'; replySnippet.textContent = m.text.slice(0,120); } else { replyBar.style.display='none'; replySnippet.textContent=''; } }
-  document.getElementById('reply-cancel')?.addEventListener('click', ()=> setReply(null));
+  const replyCancel = document.getElementById('reply-cancel');
+  if(replyCancel) replyCancel.onclick = ()=> setReply(null);
   // Menú contextual sobre mensajes
   box.querySelectorAll('.bubble')?.forEach(bub=>{
     bub.addEventListener('contextmenu', (e)=>{
@@ -649,7 +654,7 @@ function renderChat(){
     navigate('tracking');
   };
   // Fades en scroll
-  box.addEventListener('scroll', updateChatFades, { passive: true });
+  box.onscroll = updateChatFades;
   reflectMobileChatState();
 }
 
@@ -723,6 +728,7 @@ function renderTracking(){
   }
 
   const ul = document.getElementById('tracking-list');
+  if(!ul) return;
   ul.innerHTML = filtered.length ? filtered.map(p=>{
     const l = state.loads.find(x=>x.id===p.loadId);
     const threadId = threadIdFor(p);
@@ -742,8 +748,8 @@ function renderTracking(){
       </div>
     </li>`;
   }).join('') : '<li class="muted">No hay envíos para mostrar.</li>';
-  ul.querySelectorAll('[data-select]').forEach(b=>b.addEventListener('click', ()=>{ state.activeShipmentProposalId = b.dataset.select; save(); renderTracking(); }));
-  ul.querySelectorAll('[data-chat]').forEach(b=>b.addEventListener('click', ()=>openChatByProposalId(b.dataset.chat)));
+  ul.querySelectorAll('[data-select]').forEach(b=> b.onclick = ()=>{ state.activeShipmentProposalId = b.dataset.select; save(); renderTracking(); });
+  ul.querySelectorAll('[data-chat]').forEach(b=> b.onclick = ()=>openChatByProposalId(b.dataset.chat));
 
   // Tracking visual (SVG animado)
   const current = state.proposals.find(p=>p.id===state.activeShipmentProposalId);
@@ -849,7 +855,8 @@ function renderTracking(){
   const canEdit = state.user?.role==='transportista' && !!current && current.carrier===state.user.name;
   if(actions) actions.style.display = canEdit ? 'flex' : 'none';
 
-  document.querySelector('[data-advance]').onclick = ()=>{
+  const btnAdvance = document.querySelector('[data-advance]');
+  if(btnAdvance) btnAdvance.onclick = ()=>{
     if(!current) return;
     const prev = current.shipStatus || 'pendiente';
     const idx = SHIP_STEPS.indexOf(prev);
@@ -862,15 +869,17 @@ function renderTracking(){
     }
     renderTracking();
   };
-  document.querySelector('[data-reset]').onclick = ()=>{
+  const btnReset = document.querySelector('[data-reset]');
+  if(btnReset) btnReset.onclick = ()=>{
     if(!current) return;
     current.shipStatus = 'pendiente';
     state.trackingStep = current.shipStatus;
     save(); renderTracking();
   };
-  document.getElementById('tracking-open-chat').onclick = ()=>{ if(current) openChatByProposalId(current.id); };
-  onlyActive?.addEventListener('change', ()=>renderTracking());
-  search?.addEventListener('input', ()=>renderTracking());
+  const btnOpenChat = document.getElementById('tracking-open-chat');
+  if(btnOpenChat) btnOpenChat.onclick = ()=>{ if(current) openChatByProposalId(current.id); };
+  if(onlyActive) onlyActive.onchange = ()=>renderTracking();
+  if(search) search.oninput = ()=>renderTracking();
 }
 
 // Home visibility by role
@@ -947,13 +956,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
   // Ajustar altura de barra inferior al cargar y al redimensionar
   updateBottomBarHeight();
-  window.addEventListener('resize', ()=>updateBottomBarHeight());
-  window.addEventListener('resize', ()=>updateChatFades());
+  window.addEventListener('resize', ()=>{ updateBottomBarHeight(); updateChatFades(); });
   window.addEventListener('hashchange', ()=>reflectMobileChatState());
-  document.getElementById('chat-back')?.addEventListener('click', ()=>{
+  const back = document.getElementById('chat-back');
+  if(back) back.onclick = ()=>{
     // Volver a la lista de chats en móviles
     state.activeThread = null; save(); renderChat(); renderThreads(); reflectMobileChatState();
-  });
+  };
 });
 
 // helpers chat
