@@ -381,6 +381,35 @@ body.route-conversaciones.chat-has-active #chat-back{ display:inline-flex !impor
   .card .btn-ghost{ width: 100%; align-self: stretch; text-align: center; }
 }
 
+/* Compacto para móviles ~390px de ancho (iPhone 12/13/14) */
+@media (max-width: 400px){
+  html, body { font-size: 15px; }
+  .topbar-inner{ padding: 8px 10px; }
+  .app-name{ font-size: 20px; }
+  .tagline{ display:none; }
+  #view-container{ padding: 10px; padding-bottom: calc(var(--bbar-h) + 72px + var(--safe-bottom)); }
+  .hero-main{ padding: 12px; }
+  .hero-title{ font-size: 1.1rem; }
+  .section-title{ font-size: 1rem; }
+  .cards{ grid-template-columns: 1fr; gap: 10px; }
+  .card{ padding: 12px; border-radius: 14px; }
+  .list{ gap: 8px; }
+  .list li{ padding: 10px; }
+  .btn{ padding: 10px 12px; border-radius: 12px; }
+  .btn-primary{ box-shadow: 0 6px 14px rgba(243,146,0,.22); }
+  .bottombar{ padding: 8px 10px; padding-bottom: calc(8px + var(--safe-bottom)); }
+  .tab{ font-size: 20px; padding: 10px 14px; }
+  /* Login/Publicar márgenes y paddings más compactos */
+  .login-box{ margin-top: 28px; padding: 20px 14px; }
+  .publish-box{ margin-top: 24px; padding: 20px 14px; }
+  /* Chat compacto */
+  .chat-wrapper{ gap: 10px; }
+  .chat-main-header{ padding: 10px 12px; }
+  .chat-box.big{ padding: 12px; }
+  .chat-input{ padding: 10px; }
+  .bubble{ font-size: 14px; }
+}
+
 /* Header full-width con contenedor interno */
 .topbar{
   position: sticky;  /* queda pegado arriba al hacer scroll */
