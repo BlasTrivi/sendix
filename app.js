@@ -963,6 +963,45 @@ document.addEventListener('DOMContentLoaded', ()=>{
     // Volver a la lista de chats en móviles
     state.activeThread = null; save(); renderChat(); renderThreads(); reflectMobileChatState();
   };
+  // Hook de consola para mostrar avisos centrados
+  try {
+    const overlay = document.getElementById('notice-overlay');
+    const headEl = document.getElementById('notice-head');
+    const titleEl = document.getElementById('notice-title');
+    const bodyEl = document.getElementById('notice-body');
+    const okBtn = document.getElementById('notice-ok');
+    if (overlay && headEl && titleEl && bodyEl && okBtn) {
+      const original = {
+        log: console.log.bind(console),
+        warn: console.warn.bind(console),
+        error: console.error.bind(console)
+      };
+      function showNotice(kind, args){
+        const text = args.map(a=>{
+          if(a instanceof Error) return a.stack || a.message;
+          if(typeof a === 'object'){
+            try{ return JSON.stringify(a, null, 2); }catch{ return String(a); }
+          }
+          return String(a);
+        }).join(' ');
+        // estilo de encabezado por tipo
+        headEl.classList.remove('warn','error');
+        if(kind==='warn') headEl.classList.add('warn');
+        if(kind==='error') headEl.classList.add('error');
+        titleEl.textContent = kind==='log' ? 'Aviso' : (kind==='warn' ? 'Atención' : 'Error');
+        bodyEl.textContent = text;
+        overlay.style.display = 'flex';
+        overlay.classList.add('show');
+      }
+      function hideNotice(){ overlay.classList.remove('show'); overlay.style.display='none'; }
+      okBtn.addEventListener('click', hideNotice);
+      overlay.addEventListener('click', (e)=>{ if(e.target===overlay) hideNotice(); });
+      document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') hideNotice(); });
+      console.log = (...args)=>{ original.log(...args); showNotice('log', args); };
+      console.warn = (...args)=>{ original.warn(...args); showNotice('warn', args); };
+      console.error = (...args)=>{ original.error(...args); showNotice('error', args); };
+    }
+  } catch {}
 });
 
 // helpers chat
