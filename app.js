@@ -19,6 +19,7 @@ const state = {
   activeThread: null,
   activeShipmentProposalId: null,
   reads: JSON.parse(localStorage.getItem('sendix.reads') || '{}'), // { threadId: { [userName]: lastTs } }
+  justOpenedChat: false,
 };
 
 function save(){
@@ -96,6 +97,11 @@ function navigate(route){
   document.body.classList.toggle('route-conversaciones', route==='conversaciones');
   if(route!=='login') location.hash = route;
 
+  // Si entramos a conversaciones sin abrir explícitamente un chat, mostrar solo la lista
+  if(route==='conversaciones' && !state.justOpenedChat){
+    state.activeThread = null;
+  }
+
   if(route==='home') renderHome();
   if(route==='publicar'){ try{ requireRole('empresa'); renderLoads(true); }catch(e){} }
   if(route==='mis-cargas'){ try{ requireRole('empresa'); renderMyLoadsWithProposals(); }catch(e){} }
@@ -106,9 +112,16 @@ function navigate(route){
   if(route==='conversaciones'){ renderThreads(); renderChat(); }
   if(route==='resumen'){ try{ requireRole('sendix'); renderMetrics(); }catch(e){} }
   if(route==='tracking') renderTracking();
+  if(route==='conversaciones') reflectMobileChatState(); else document.body.classList.remove('chat-has-active');
+  // Reset del flag luego de navegar
+  state.justOpenedChat = false;
 }
 function initNav(){
   document.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click', ()=>navigate(el.dataset.nav)));
+  // Si el usuario toca "Conversaciones" desde la barra, forzar vista de lista
+  document.querySelectorAll('[data-nav="conversaciones"]').forEach(el=>{
+    el.addEventListener('click', ()=>{ state.activeThread = null; state.justOpenedChat = false; });
+  });
   // Permitir que las tarjetas del home sean clickeables en toda su superficie
   document.addEventListener('click', (e)=>{
     const target = e.target.closest('.card[data-nav]');
@@ -412,8 +425,11 @@ function renderThreads(){
     const sub = `Emp: ${l?.owner} · Transp: ${p.carrier} · Tam: ${l?.tamano||'-'}`;
     const unread = computeUnread(threadIdFor(p));
     const match = (title+' '+sub).toLowerCase().includes(q);
-    return {p, l, title, sub, unread, match};
-  }).filter(x=>x.match);
+    const tId = threadIdFor(p);
+    const lastMsg = [...state.messages].reverse().find(m=>m.threadId===tId);
+    const lastTs = lastMsg?.ts || (p.createdAt ? new Date(p.createdAt).getTime() : 0);
+    return {p, l, title, sub, unread, match, lastTs};
+  }).filter(x=>x.match).sort((a,b)=> b.lastTs - a.lastTs);
   ul.innerHTML = items.length ? items.map(({p, l, title, sub, unread})=>`
     <li class="thread-item" data-chat="${p.id}">
       <div class="avatar">${(l?.owner||'?')[0]||'?'}</div>
@@ -425,15 +441,17 @@ function renderThreads(){
     </li>
   `).join('') : '<li class="muted" style="padding:12px">Sin conversaciones</li>';
   ul.querySelectorAll('[data-chat]').forEach(li=>li.addEventListener('click', ()=>openChatByProposalId(li.dataset.chat)));
-  document.getElementById('chat-search')?.addEventListener('input', ()=>renderThreads());
+  const searchEl = document.getElementById('chat-search');
+  if(searchEl) searchEl.oninput = ()=>renderThreads();
   // Marcar todo como leído
-  document.getElementById('mark-all-read')?.addEventListener('click', ()=>{
+  const markAll = document.getElementById('mark-all-read');
+  if(markAll) markAll.onclick = ()=>{
     threadsForCurrentUser().forEach(p=>markThreadRead(threadIdFor(p)));
     renderThreads();
-  });
+  };
   // Fades en la lista de hilos
   updateThreadsFades();
-  ul.addEventListener('scroll', updateThreadsFades, { passive: true });
+  ul.onscroll = updateThreadsFades;
 }
 
 function updateThreadsFades(){
@@ -477,6 +495,7 @@ function renderMetrics(){
 function openChatByProposalId(propId){
   const p = state.proposals.find(x=>x.id===propId);
   state.activeThread = p ? threadIdFor(p) : null;
+  state.justOpenedChat = true;
   save();
   navigate('conversaciones');
   if(state.activeThread) markThreadRead(state.activeThread);
@@ -662,8 +681,6 @@ function hideTyping(){
   if(!el) return;
   el.style.display = 'none';
 }
-
-// (limpieza) funciones de tracking antiguas removidas
 
 // Tracking global por envío
 function renderTracking(){
