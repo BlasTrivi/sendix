@@ -678,8 +678,18 @@ function renderHome(){
     const trackingActivos = myApproved.filter(p=>(p.shipStatus||'pendiente')!=='entregado').length;
     const b1 = document.getElementById('badge-empresa-mis-cargas');
     const b2 = document.getElementById('badge-empresa-tracking');
-    if(b1){ b1.style.display = myLoads? 'inline-block':'none'; b1.textContent = myLoads; }
-    if(b2){ b2.style.display = trackingActivos? 'inline-block':'none'; b2.textContent = trackingActivos; }
+    if(b1){
+      const prev = Number(b1.textContent||'0');
+      b1.style.display = myLoads? 'inline-block':'none';
+      b1.textContent = myLoads;
+      if(myLoads!==prev && myLoads>0){ b1.classList.remove('pulse-badge'); void b1.offsetWidth; b1.classList.add('pulse-badge'); }
+    }
+    if(b2){
+      const prev = Number(b2.textContent||'0');
+      b2.style.display = trackingActivos? 'inline-block':'none';
+      b2.textContent = trackingActivos;
+      if(trackingActivos!==prev && trackingActivos>0){ b2.classList.remove('pulse-badge'); void b2.offsetWidth; b2.classList.add('pulse-badge'); }
+    }
   }
   if(state.user?.role==='transportista'){
     const approvedByLoad = new Set(state.proposals.filter(p=>p.status==='approved').map(p=>p.loadId));
@@ -687,7 +697,13 @@ function renderHome(){
     const misPost = state.proposals.filter(p=>p.carrier===state.user?.name).length;
     const misEnvios = state.proposals.filter(p=>p.carrier===state.user?.name && p.status==='approved').length;
     const trackingActivos = state.proposals.filter(p=>p.carrier===state.user?.name && p.status==='approved' && (p.shipStatus||'pendiente')!=='entregado').length;
-    const setBadge = (id,val)=>{ const el=document.getElementById(id); if(!el) return; el.style.display = val? 'inline-block':'none'; el.textContent = val; };
+    const setBadge = (id,val)=>{
+      const el=document.getElementById(id); if(!el) return;
+      const prev = Number(el.textContent||'0');
+      el.style.display = val? 'inline-block':'none';
+      el.textContent = val;
+      if(val!==prev && val>0){ el.classList.remove('pulse-badge'); void el.offsetWidth; el.classList.add('pulse-badge'); }
+    };
     setBadge('badge-transp-ofertas', ofertas);
     setBadge('badge-transp-mis-postulaciones', misPost);
     setBadge('badge-transp-mis-envios', misEnvios);
@@ -699,8 +715,8 @@ function renderHome(){
     const unread = threads.map(p=>computeUnread(threadIdFor(p))).reduce((a,b)=>a+b,0);
     const b1 = document.getElementById('badge-sendix-moderacion');
     const b2 = document.getElementById('badge-sendix-conversaciones');
-    if(b1){ b1.style.display = moderacion? 'inline-block':'none'; b1.textContent = moderacion; }
-    if(b2){ b2.style.display = unread? 'inline-block':'none'; b2.textContent = unread; }
+    if(b1){ const prev=Number(b1.textContent||'0'); b1.style.display = moderacion? 'inline-block':'none'; b1.textContent = moderacion; if(moderacion!==prev && moderacion>0){ b1.classList.remove('pulse-badge'); void b1.offsetWidth; b1.classList.add('pulse-badge'); } }
+    if(b2){ const prev=Number(b2.textContent||'0'); b2.style.display = unread? 'inline-block':'none'; b2.textContent = unread; if(unread!==prev && unread>0){ b2.classList.remove('pulse-badge'); void b2.offsetWidth; b2.classList.add('pulse-badge'); } }
   }
 }
 

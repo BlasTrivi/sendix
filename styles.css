@@ -392,12 +392,11 @@ select option{color:#0E2F44; background:#fff}
     max-width: 98vw;
     padding: 18px 6px 14px 6px;
   }
-  .publish-title {
-  .card-badge{ top:8px; right:8px; }
-    font-size: 1.1rem;
-  }
+  .publish-title { font-size: 1.1rem; }
   .bottombar{ padding: 10px; padding-bottom: calc(10px + var(--safe-bottom)); }
   .tab{ font-size: 22px; padding: 12px 16px; }
+  .card-badge{ top:8px; right:8px; }
+}
 /* --------------------
    Login mejorado y header alineado
    -------------------- */
@@ -494,4 +493,11 @@ select option{color:#0E2F44; background:#fff}
   }
 }
 
+/* Microanimación para badge cuando cambia el conteo */
+.pulse-badge { animation: pulse-badge .6s ease-out; }
+@keyframes pulse-badge {
+  0% { transform: scale(1); filter: brightness(1); }
+  30% { transform: scale(1.12); filter: brightness(1.05); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); filter: brightness(1); }
 }
