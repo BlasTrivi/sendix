@@ -519,9 +519,46 @@ function renderTracking(){
   ul.querySelectorAll('[data-select]').forEach(b=>b.addEventListener('click', ()=>{ state.activeShipmentProposalId = b.dataset.select; save(); renderTracking(); }));
   ul.querySelectorAll('[data-chat]').forEach(b=>b.addEventListener('click', ()=>openChatByProposalId(b.dataset.chat)));
 
+  // Mapa interactivo con Leaflet
   const current = state.proposals.find(p=>p.id===state.activeShipmentProposalId);
-  const shipStep = current?.shipStatus || 'pendiente';
-  updateTrackingDots(shipStep); setTruckPositionByStep(shipStep);
+  const mapBox = document.getElementById('tracking-map');
+  if(mapBox){
+    // Limpiar mapa anterior
+    mapBox.innerHTML = '';
+    if(current){
+      // Coordenadas demo: Buenos Aires y Rosario
+      let origen = [-34.6037, -58.3816];
+      let destino = [-32.9468, -60.6393];
+      // Si hay datos reales, podrías usar current.origen/destino
+      const route = [origen, destino];
+      // Inicializar mapa
+      if(window.trackingMap) { window.trackingMap.remove(); }
+      window.trackingMap = L.map('tracking-map').setView(origen, 6);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(window.trackingMap);
+      // Dibujar ruta
+      const polyline = L.polyline(route, {color: '#0E2F44', weight: 5, opacity: 0.7}).addTo(window.trackingMap);
+      window.trackingMap.fitBounds(polyline.getBounds());
+      // Marcadores de origen y destino
+      L.marker(origen).addTo(window.trackingMap).bindPopup('Origen: Buenos Aires').openPopup();
+      L.marker(destino).addTo(window.trackingMap).bindPopup('Destino: Rosario');
+      // Icono de camión
+      const truckIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/2921/2921822.png',
+        iconSize: [38, 38],
+        iconAnchor: [19, 19],
+        popupAnchor: [0, -19]
+      });
+      // Marcador animado del camión según estado
+      let stepIdx = SHIP_STEPS.indexOf(current.shipStatus||'pendiente');
+      let progress = stepIdx / (SHIP_STEPS.length-1);
+      const lat = origen[0] + (destino[0] - origen[0]) * progress;
+      const lng = origen[1] + (destino[1] - origen[1]) * progress;
+      if(window.truckMarker) window.truckMarker.remove();
+      window.truckMarker = L.marker([lat, lng], {icon: truckIcon}).addTo(window.trackingMap).bindPopup('Camión en ruta');
+    }
+  }
 
   const canEdit = state.user?.role==='transportista' && !!current && current.carrier===state.user.name;
   if(actions) actions.style.display = canEdit ? 'flex' : 'none';

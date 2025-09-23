@@ -221,25 +221,16 @@
           <span id="tracking-role-hint" class="muted"></span>
         </div>
         <ul id="tracking-list" class="list"></ul>
-        <div class="tracking-visual">
-          <svg class="tracking-svg" viewBox="0 0 600 120" width="100%" height="120">
-            <rect x="40" y="60" width="520" height="12" rx="6" fill="#eaf1f6" stroke="#E3EDF2" />
-            <circle class="tracking-step" cx="40" cy="66" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
-            <circle class="tracking-step" cx="200" cy="66" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
-            <circle class="tracking-step" cx="360" cy="66" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
-            <circle class="tracking-step" cx="560" cy="66" r="16" fill="#fff" stroke="#0E2F44" stroke-width="3" />
-            <text x="40" y="105" text-anchor="middle" font-size="15" fill="#5A6C79">Pendiente</text>
-            <text x="200" y="105" text-anchor="middle" font-size="15" fill="#5A6C79">En carga</text>
-            <text x="360" y="105" text-anchor="middle" font-size="15" fill="#5A6C79">En camino</text>
-            <text x="560" y="105" text-anchor="middle" font-size="15" fill="#5A6C79">Entregado</text>
-            <image id="tracking-truck" x="40" y="38" width="38" height="28" xlink:href="assets/map-placeholder.svg" />
-          </svg>
+        <div class="map-box" style="width:100%;max-width:700px;margin:32px auto 24px auto;position:relative;">
+          <div id="tracking-map" style="width:100%;height:350px;border-radius:16px;box-shadow:0 4px 24px #0002;"></div>
         </div>
         <div class="actions" id="tracking-actions">
           <button class="btn" data-advance>Avanzar estado</button>
           <button class="btn btn-ghost" data-reset>Reiniciar</button>
           <button class="btn" id="tracking-open-chat">Abrir chat</button>
         </div>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
       </section>
     </main>
 
