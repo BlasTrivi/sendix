@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Demo Mapa Real SENDIX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f6f8fa; margin:0; }
+    #map { width: 100vw; height: 80vh; margin: 0 auto; border-radius: 16px; box-shadow: 0 4px 24px #0002; }
+    .info-box { position: absolute; top: 24px; left: 24px; background: #fff; padding: 12px 18px; border-radius: 8px; box-shadow: 0 2px 8px #0001; font-size: 16px; z-index: 1000; }
+    .leaflet-control-attribution { font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="info-box">
+    <strong>Demo de Mapa Real SENDIX</strong><br>
+    Ruta simulada: Buenos Aires ➜ Rosario<br>
+    El camión se mueve en tiempo real.
+  </div>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Coordenadas de Buenos Aires y Rosario
+    const origen = [-34.6037, -58.3816];
+    const destino = [-32.9468, -60.6393];
+    const route = [origen, destino];
+
+    // Inicializar mapa
+    const map = L.map('map').setView(origen, 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Dibujar ruta
+    const polyline = L.polyline(route, {color: '#0E2F44', weight: 5, opacity: 0.7}).addTo(map);
+    map.fitBounds(polyline.getBounds());
+
+    // Marcadores de origen y destino
+    L.marker(origen).addTo(map).bindPopup('Origen: Buenos Aires').openPopup();
+    L.marker(destino).addTo(map).bindPopup('Destino: Rosario');
+
+    // Icono de camión
+    const truckIcon = L.icon({
+      iconUrl: 'https://cdn-icons-png.flaticon.com/512/2921/2921822.png',
+      iconSize: [38, 38],
+      iconAnchor: [19, 19],
+      popupAnchor: [0, -19]
+    });
+
+    // Marcador animado del camión
+    let truckMarker = L.marker(origen, {icon: truckIcon}).addTo(map).bindPopup('Camión en ruta');
+    let progress = 0;
+    function animateTruck() {
+      progress += 0.005;
+      if(progress > 1) progress = 0;
+      const lat = origen[0] + (destino[0] - origen[0]) * progress;
+      const lng = origen[1] + (destino[1] - origen[1]) * progress;
+      truckMarker.setLatLng([lat, lng]);
+      requestAnimationFrame(animateTruck);
+    }
+    animateTruck();
+  </script>
+</body>
+</html>
