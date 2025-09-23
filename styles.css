@@ -117,8 +117,8 @@ body{
 /* Contenedor de vistas */
 #view-container{flex:1; padding:18px; padding-bottom: calc(var(--bbar-h) + 98px + var(--safe-bottom)); overflow:auto}
 /* En la vista de chat, evitamos scroll de la vista completa y lo dejamos al panel de mensajes */
-.view[data-route="conversaciones"]{ overflow:hidden; display:flex; flex-direction:column; min-height:0; }
-.view[data-route="conversaciones"] .chat-wrapper{ flex:1; min-height:0; }
+.view.active[data-route="conversaciones"]{ overflow:hidden; display:flex; flex-direction:column; min-height:0; }
+.view.active[data-route="conversaciones"] .chat-wrapper{ flex:1; min-height:0; }
 .chat-main{ display:flex; flex-direction:column; }
 .chat-box.big{ flex:1; overflow:auto; }
 
