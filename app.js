@@ -470,6 +470,7 @@ function openChatByProposalId(propId){
   if(state.activeThread) markThreadRead(state.activeThread);
   renderThreads();
   renderChat();
+  reflectMobileChatState();
 }
 function renderChat(){
   const box = document.getElementById('chat-box');
@@ -481,13 +482,16 @@ function renderChat(){
   const attachPreviews = document.getElementById('attach-previews');
   const contextMenu = document.getElementById('context-menu');
   const chatForm = document.getElementById('chat-form');
+  const backBtn = document.getElementById('chat-back');
   if(!state.activeThread){
     box.innerHTML = '<div class="muted">Elegí una conversación.</div>';
     title.textContent='Elegí una conversación'; topic.textContent='';
     typing.style.display='none'; replyBar.style.display='none'; attachPreviews.style.display='none';
     chatForm.style.display='none';
+    if(backBtn) backBtn.style.display='none';
     return;
   }
+  if(backBtn) backBtn.style.display='inline-flex';
   chatForm.style.display='flex';
   const p = state.proposals.find(x=>threadIdFor(x)===state.activeThread);
   if(!p){ box.innerHTML='<div class="muted">Conversación no disponible.</div>'; return; }
@@ -613,6 +617,13 @@ function renderChat(){
   };
   // Fades en scroll
   box.addEventListener('scroll', updateChatFades, { passive: true });
+  reflectMobileChatState();
+}
+
+function reflectMobileChatState(){
+  const routeIsChat = (location.hash.replace('#','')||'home')==='conversaciones';
+  const hasActive = !!state.activeThread;
+  document.body.classList.toggle('chat-has-active', routeIsChat && hasActive);
 }
 
 function updateChatFades(){
@@ -907,6 +918,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   updateBottomBarHeight();
   window.addEventListener('resize', ()=>updateBottomBarHeight());
   window.addEventListener('resize', ()=>updateChatFades());
+  window.addEventListener('hashchange', ()=>reflectMobileChatState());
+  document.getElementById('chat-back')?.addEventListener('click', ()=>{
+    // Volver a la lista de chats en móviles
+    state.activeThread = null; save(); renderChat(); renderThreads(); reflectMobileChatState();
+  });
 });
 
 // helpers chat

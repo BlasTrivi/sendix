@@ -314,6 +314,14 @@ select option{color:#0E2F44; background:#fff}
   .chat-wrapper{grid-template-columns:1fr}
   /* En pantallas pequeñas hacemos el recuadro del chat proporcional a la altura de la ventana */
   .view.active[data-route="conversaciones"] .chat-wrapper{ height: 70vh; }
+  /* En móviles: mostrar sólo sidebar o sólo chat-main según estado */
+  body.route-conversaciones .chat-sidebar{ display:block }
+  body.route-conversaciones.chat-has-active .chat-sidebar{ display:none }
+  body.route-conversaciones .chat-main{ display:none }
+  body.route-conversaciones.chat-has-active .chat-main{ display:flex }
+  /* Botón atrás visible en móviles cuando hay chat activo */
+  .chat-main-left{ display:flex; align-items:flex-start; gap:8px }
+  body.route-conversaciones.chat-has-active #chat-back{ display:inline-flex !important }
 }
 
 #tracking-search{max-width:220px}
