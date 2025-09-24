@@ -226,8 +226,31 @@ function renderMyLoadsWithProposals(focus){
   const ul = document.getElementById('my-loads-with-proposals');
   const mine = state.loads.filter(l=>l.owner===state.user?.name);
   ul.innerHTML = mine.length ? mine.map(l=>{
+    const approved = state.proposals.find(p=>p.loadId===l.id && p.status==='approved');
     const filtered = state.proposals.filter(p=>p.loadId===l.id && p.status==='filtered');
-    const block = filtered.length ? filtered.map(p=>{
+    // Bloque de envío seleccionado (aprobado)
+    const approvedBlock = approved ? (()=>{
+      const threadId = threadIdFor(approved);
+      const lastMsg = [...state.messages].reverse().find(m=>m.threadId===threadId);
+      const chipClass = (approved.shipStatus==='entregado') ? 'ok' : (approved.shipStatus==='en-camino' ? '' : 'warn');
+      return `<ul class="list" style="margin-top:8px">
+        <li class="row">
+          <div>
+            <div><strong>${approved.carrier}</strong> <span class="muted">(${approved.vehicle||'-'})</span></div>
+            <div class="muted">Estado actual: <span class="chip ${chipClass}">${approved.shipStatus||'pendiente'}</span></div>
+            ${lastMsg ? `<div class="muted">Último chat: ${new Date(lastMsg.ts).toLocaleString()} · ${lastMsg.from}: ${escapeHtml(lastMsg.text).slice(0,80)}${(lastMsg.text||'').length>80?'…':''}</div>` : ''}
+          </div>
+          <div class="row">
+            <span class="badge">Aprobada</span>
+            <strong>$${approved.price.toLocaleString('es-AR')}</strong>
+            <button class="btn" data-approved-chat="${approved.id}">Chat</button>
+            <button class="btn" data-approved-track="${approved.id}">Ver envío</button>
+          </div>
+        </li>
+      </ul>`;
+    })() : '';
+    // Bloque de propuestas filtradas (aún no seleccionadas)
+    const filteredBlock = filtered.length ? filtered.map(p=>{
       const threadId = threadIdFor(p);
       const lastMsg = [...state.messages].reverse().find(m=>m.threadId===threadId);
       return `<li class="row">
@@ -243,8 +266,9 @@ function renderMyLoadsWithProposals(focus){
     return `<li id="load-${l.id}">
       <div class="row"><strong>${l.origen} ➜ ${l.destino}</strong><span>${new Date(l.createdAt).toLocaleDateString()}</span></div>
       <div class="muted">Tipo: ${l.tipo} · Tamaño: ${l.tamano||'-'} · Fecha: ${l.fecha}</div>
+      ${approvedBlock ? `<div class="mt"><strong>Envío seleccionado</strong></div>${approvedBlock}` : ''}
       <div class="mt"><strong>Propuestas filtradas por SENDIX</strong></div>
-      <ul class="list">`+block+`</ul></li>`;
+      <ul class="list">`+filteredBlock+`</ul></li>`;
   }).join('') : '<li class="muted">No publicaste cargas.</li>';
   if(focus) document.getElementById('load-'+focus)?.scrollIntoView({behavior:'smooth'});
   ul.querySelectorAll('[data-select-win]')?.forEach(b=>b.addEventListener('click', ()=>{
@@ -262,6 +286,9 @@ function renderMyLoadsWithProposals(focus){
     alert('Propuesta seleccionada. Se habilitó chat y tracking del envío.');
     openChatByProposalId(winner.id);
   }));
+  // Acciones sobre envío aprobado (chat / ver envío)
+  ul.querySelectorAll('[data-approved-chat]')?.forEach(b=> b.addEventListener('click', ()=> openChatByProposalId(b.dataset.approvedChat)));
+  ul.querySelectorAll('[data-approved-track]')?.forEach(b=> b.addEventListener('click', ()=>{ state.activeShipmentProposalId = b.dataset.approvedTrack; save(); navigate('tracking'); }));
 }
 
 // TRANSPORTISTA
@@ -364,6 +391,9 @@ function renderShipments(){
         notifyDelivered(p);
       }
       renderShipments();
+      // Si el usuario es empresa y está viendo 'mis-cargas', refrescar para ver estado entregado
+      const currentRoute = (location.hash.replace('#','')||'home');
+      if(currentRoute==='mis-cargas'){ try{ requireRole('empresa'); renderMyLoadsWithProposals(); }catch(e){} }
       alert('Estado actualizado');
     }
   }));
@@ -868,6 +898,9 @@ function renderTracking(){
       notifyDelivered(current);
     }
     renderTracking();
+    // Refrescar 'mis-cargas' si está visible para que muestre entregado
+    const currentRoute2 = (location.hash.replace('#','')||'home');
+    if(currentRoute2==='mis-cargas'){ try{ requireRole('empresa'); renderMyLoadsWithProposals(); }catch(e){} }
   };
   const btnReset = document.querySelector('[data-reset]');
   if(btnReset) btnReset.onclick = ()=>{
@@ -875,6 +908,8 @@ function renderTracking(){
     current.shipStatus = 'pendiente';
     state.trackingStep = current.shipStatus;
     save(); renderTracking();
+    const currentRoute3 = (location.hash.replace('#','')||'home');
+    if(currentRoute3==='mis-cargas'){ try{ requireRole('empresa'); renderMyLoadsWithProposals(); }catch(e){} }
   };
   const btnOpenChat = document.getElementById('tracking-open-chat');
   if(btnOpenChat) btnOpenChat.onclick = ()=>{ if(current) openChatByProposalId(current.id); };
