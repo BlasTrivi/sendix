@@ -228,29 +228,34 @@ function renderMyLoadsWithProposals(focus){
   ul.innerHTML = mine.length ? mine.map(l=>{
     const approved = state.proposals.find(p=>p.loadId===l.id && p.status==='approved');
     const filtered = state.proposals.filter(p=>p.loadId===l.id && p.status==='filtered');
+    const isDelivered = !!approved && (approved.shipStatus||'pendiente')==='entregado';
     // Bloque de envío seleccionado (aprobado)
     const approvedBlock = approved ? (()=>{
       const threadId = threadIdFor(approved);
       const lastMsg = [...state.messages].reverse().find(m=>m.threadId===threadId);
       const chipClass = (approved.shipStatus==='entregado') ? 'ok' : (approved.shipStatus==='en-camino' ? '' : 'warn');
+      const rightActions = isDelivered
+        ? `<div class="row"><strong>$${approved.price.toLocaleString('es-AR')}</strong></div>`
+        : `<div class="row">
+             <span class="badge">Aprobada</span>
+             <strong>$${approved.price.toLocaleString('es-AR')}</strong>
+             <button class="btn" data-approved-chat="${approved.id}">Chat</button>
+             <button class="btn" data-approved-track="${approved.id}">Ver envío</button>
+           </div>`;
       return `<ul class="list" style="margin-top:8px">
         <li class="row">
           <div>
             <div><strong>${approved.carrier}</strong> <span class="muted">(${approved.vehicle||'-'})</span></div>
             <div class="muted">Estado actual: <span class="chip ${chipClass}">${approved.shipStatus||'pendiente'}</span></div>
-            ${lastMsg ? `<div class="muted">Último chat: ${new Date(lastMsg.ts).toLocaleString()} · ${lastMsg.from}: ${escapeHtml(lastMsg.text).slice(0,80)}${(lastMsg.text||'').length>80?'…':''}</div>` : ''}
+            ${lastMsg ? `<div class="muted">Último chat: ${new Date(lastMsg.ts).toLocaleString()} · ${escapeHtml(lastMsg.from||'')}: ${escapeHtml(lastMsg.text||'').slice(0,80)}${(lastMsg.text||'').length>80?'…':''}</div>` : ''}
           </div>
-          <div class="row">
-            <span class="badge">Aprobada</span>
-            <strong>$${approved.price.toLocaleString('es-AR')}</strong>
-            <button class="btn" data-approved-chat="${approved.id}">Chat</button>
-            <button class="btn" data-approved-track="${approved.id}">Ver envío</button>
-          </div>
+          ${rightActions}
         </li>
       </ul>`;
     })() : '';
-    // Bloque de propuestas filtradas (aún no seleccionadas)
-    const filteredBlock = filtered.length ? filtered.map(p=>{
+    // Bloque de propuestas filtradas (solo si no hay aprobada)
+    const showFiltered = !approved;
+    const filteredBlock = showFiltered && filtered.length ? filtered.map(p=>{
       const threadId = threadIdFor(p);
       const lastMsg = [...state.messages].reverse().find(m=>m.threadId===threadId);
       return `<li class="row">
@@ -260,15 +265,16 @@ function renderMyLoadsWithProposals(focus){
           <strong>$${p.price.toLocaleString('es-AR')}</strong>
           <button class="btn btn-primary" data-select-win="${p.id}">Seleccionar</button>
         </div>
-        <div class="muted" style="flex-basis:100%">${lastMsg ? 'Último: '+new Date(lastMsg.ts).toLocaleString()+' · '+lastMsg.from+': '+lastMsg.text : 'Aún sin chat (se habilita al seleccionar).'}</div>
+        <div class="muted" style="flex-basis:100%">${lastMsg ? 'Último: '+new Date(lastMsg.ts).toLocaleString()+' · '+escapeHtml(lastMsg.from)+': '+escapeHtml(lastMsg.text) : 'Aún sin chat (se habilita al seleccionar).'}</div>
       </li>`;
-    }).join('') : '<li class="muted">Sin propuestas filtradas por SENDIX aún.</li>';
+    }).join('') : (showFiltered ? '<li class="muted">Sin propuestas filtradas por SENDIX aún.</li>' : '');
     return `<li id="load-${l.id}">
       <div class="row"><strong>${l.origen} ➜ ${l.destino}</strong><span>${new Date(l.createdAt).toLocaleDateString()}</span></div>
       <div class="muted">Tipo: ${l.tipo} · Tamaño: ${l.tamano||'-'} · Fecha: ${l.fecha}</div>
       ${approvedBlock ? `<div class="mt"><strong>Envío seleccionado</strong></div>${approvedBlock}` : ''}
-      <div class="mt"><strong>Propuestas filtradas por SENDIX</strong></div>
-      <ul class="list">`+filteredBlock+`</ul></li>`;
+      ${showFiltered ? `<div class="mt"><strong>Propuestas filtradas por SENDIX</strong></div>
+      <ul class="list">${filteredBlock}</ul>` : ''}
+    </li>`;
   }).join('') : '<li class="muted">No publicaste cargas.</li>';
   if(focus) document.getElementById('load-'+focus)?.scrollIntoView({behavior:'smooth'});
   ul.querySelectorAll('[data-select-win]')?.forEach(b=>b.addEventListener('click', ()=>{
