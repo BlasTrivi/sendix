@@ -12,6 +12,7 @@ const SHIP_STEPS = ['pendiente','en-carga','en-camino','entregado'];
 
 const state = {
   user: JSON.parse(localStorage.getItem('sendix.user') || 'null'),
+  tokens: JSON.parse(localStorage.getItem('sendix.tokens') || 'null'), // { accessToken, refreshToken }
   loads: JSON.parse(localStorage.getItem('sendix.loads') || '[]'),
   proposals: JSON.parse(localStorage.getItem('sendix.proposals') || '[]'), // {id, loadId, carrier, vehicle, price, status, shipStatus}
   messages: JSON.parse(localStorage.getItem('sendix.messages') || '[]'),   // {threadId, from, role, text, ts}
@@ -24,6 +25,7 @@ const state = {
 
 function save(){
   localStorage.setItem('sendix.user', JSON.stringify(state.user));
+  localStorage.setItem('sendix.tokens', JSON.stringify(state.tokens));
   localStorage.setItem('sendix.reads', JSON.stringify(state.reads));
   localStorage.setItem('sendix.loads', JSON.stringify(state.loads));
   localStorage.setItem('sendix.proposals', JSON.stringify(state.proposals));
@@ -150,13 +152,100 @@ function requireRole(role){
 }
 
 // AUTH
+// --- API client (Express) ---
+const API_BASE = (window.SENDIX_API_BASE || 'http://localhost:3001');
+async function apiFetch(path, { method='GET', headers={}, body, auth=true }={}){
+  const h = { 'Content-Type': 'application/json', ...headers };
+  if(auth && state.tokens?.accessToken) h.Authorization = `Bearer ${state.tokens.accessToken}`;
+  const res = await fetch(`${API_BASE}${path}`, { method, headers: h, body: body? JSON.stringify(body): undefined });
+  if(res.status === 401 && auth && state.tokens?.refreshToken){
+    // Intentar refresh
+    const ok = await tryRefreshToken();
+    if(ok){
+      h.Authorization = `Bearer ${state.tokens.accessToken}`;
+      const res2 = await fetch(`${API_BASE}${path}`, { method, headers: h, body: body? JSON.stringify(body): undefined });
+      return res2;
+    }
+  }
+  return res;
+}
+async function tryRefreshToken(){
+  try{
+    const rr = await fetch(`${API_BASE}/api/auth/refresh`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ refreshToken: state.tokens?.refreshToken }) });
+    if(!rr.ok) return false;
+    const data = await rr.json();
+    state.tokens = { accessToken: data.accessToken, refreshToken: data.refreshToken };
+    save();
+    return true;
+  }catch{ return false; }
+}
+async function apiRegister({ name, email, password, role }){
+  const res = await fetch(`${API_BASE}/api/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password, role }) });
+  if(!res.ok) throw new Error((await res.json()).error || 'Registro falló');
+  const data = await res.json();
+  const mappedRole = mapBackendRoleToFront(data.user.role);
+  state.user = { id: data.user.id, name, email: data.user.email, role: mappedRole };
+  state.tokens = { accessToken: data.accessToken, refreshToken: data.refreshToken };
+  save();
+}
+async function apiLogin({ name, email, password }){
+  const res = await fetch(`${API_BASE}/api/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
+  if(!res.ok) throw new Error((await res.json()).error || 'Login falló');
+  const data = await res.json();
+  const mappedRole = mapBackendRoleToFront(data.user.role);
+  state.user = { id: data.user.id, name, email: data.user.email, role: mappedRole };
+  state.tokens = { accessToken: data.accessToken, refreshToken: data.refreshToken };
+  save();
+}
+function apiLogout(){ state.user=null; state.tokens=null; save(); }
+function mapBackendRoleToFront(role){
+  // Backend: EMPRESA, TRANSPORTISTA, ADMIN -> Front: empresa, transportista, sendix
+  if(role==='EMPRESA') return 'empresa';
+  if(role==='TRANSPORTISTA') return 'transportista';
+  if(role==='ADMIN') return 'sendix';
+  return 'empresa';
+}
+
 function initLogin(){
   const form = document.getElementById('login-form');
+  const modeInput = document.getElementById('auth-mode');
+  const rolesFieldset = document.getElementById('auth-roles');
+  const switchBtn = document.getElementById('auth-switch');
+  const submitBtn = document.getElementById('auth-submit');
+  const emailEl = document.getElementById('auth-email');
+  const passEl = document.getElementById('auth-password');
+  const nameEl = document.getElementById('auth-name');
+  function toggleMode(){
+    const isLogin = modeInput.value==='login';
+    // Cambiar
+    modeInput.value = isLogin ? 'register' : 'login';
+    rolesFieldset.style.display = isLogin ? 'block' : 'none';
+    submitBtn.textContent = isLogin ? 'Registrarme' : 'Iniciar sesión';
+    switchBtn.textContent = isLogin ? '¿Ya tenés cuenta? Iniciá sesión' : '¿No tenés cuenta? Registrate';
+    // Focus
+    setTimeout(()=>{ (isLogin ? nameEl : emailEl)?.focus(); }, 0);
+  }
+  switchBtn?.addEventListener('click', toggleMode);
   form.addEventListener('submit', (e)=>{
     e.preventDefault();
-    const data = Object.fromEntries(new FormData(form).entries());
-    state.user = { name: data.name.trim(), role: data.role };
-    save(); updateChrome(); navigate('home');
+    (async ()=>{
+      try{
+        const data = Object.fromEntries(new FormData(form).entries());
+        const name = String(data.name||'').trim();
+        const email = String(data.email||'').trim();
+        const password = String(data.password||'');
+        if(!name || !email || !password){ alert('Completá nombre, email y contraseña.'); return; }
+        if(modeInput.value==='register'){
+          const role = data.role || 'EMPRESA';
+          await apiRegister({ name, email, password, role });
+        } else {
+          await apiLogin({ name, email, password });
+        }
+        updateChrome(); navigate('home');
+      }catch(err){
+        alert(err.message || 'Error de autenticación');
+      }
+    })();
   });
 }
 function updateChrome(){
@@ -164,7 +253,7 @@ function updateChrome(){
   if(state.user){
     badge.innerHTML = `<span class="badge">${state.user.name} · ${state.user.role}</span> <button class="btn btn-ghost" id="logout">Salir</button>`;
   } else badge.textContent='';
-  document.getElementById('logout')?.addEventListener('click', ()=>{ state.user=null; save(); updateChrome(); navigate('login'); });
+  document.getElementById('logout')?.addEventListener('click', ()=>{ apiLogout(); updateChrome(); navigate('login'); });
   document.getElementById('nav-empresa').classList.toggle('visible', state.user?.role==='empresa');
   document.getElementById('nav-transportista').classList.toggle('visible', state.user?.role==='transportista');
   document.getElementById('nav-sendix').classList.toggle('visible', state.user?.role==='sendix');

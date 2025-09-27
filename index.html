@@ -36,16 +36,24 @@
           <h2 class="login-title">Bienvenido a <span style="color:var(--accent)">SENDIX</span></h2>
           <p class="login-desc">La app que agiliza, resuelve y conecta a empresas con transportistas.<br><span class="muted">Simple, rápida y segura.</span></p>
           <form id="login-form" class="form login-form" autocomplete="off">
-            <label><span>👤</span> Tu nombre
-              <input name="name" placeholder="Ej: Carla / Nexo SENDIX" required/>
+            <input type="hidden" name="mode" id="auth-mode" value="login" />
+            <label><span>👤</span> Tu nombre (alias visible en chats)
+              <input name="name" id="auth-name" placeholder="Ej: Carla / Nexo SENDIX" required/>
             </label>
-            <fieldset class="roles">
-              <legend>Rol</legend>
-              <label class="radio"><input type="radio" name="role" value="empresa" checked/> Empresa</label>
-              <label class="radio"><input type="radio" name="role" value="transportista"/> Transportista</label>
-              <label class="radio"><input type="radio" name="role" value="sendix"/> SENDIX </label>
+            <label><span>📧</span> Email
+              <input type="email" name="email" id="auth-email" placeholder="tu@email" required/>
+            </label>
+            <label><span>🔒</span> Contraseña
+              <input type="password" name="password" id="auth-password" placeholder="••••••••" required/>
+            </label>
+            <fieldset class="roles" id="auth-roles" style="display:none">
+              <legend>Rol (solo para registro)</legend>
+              <label class="radio"><input type="radio" name="role" value="EMPRESA" checked/> Empresa</label>
+              <label class="radio"><input type="radio" name="role" value="TRANSPORTISTA"/> Transportista</label>
+              <label class="radio"><input type="radio" name="role" value="ADMIN"/> SENDIX (admin)</label>
             </fieldset>
-            <button class="btn btn-primary login-btn" type="submit">Entrar</button>
+            <button class="btn btn-primary login-btn" type="submit" id="auth-submit">Iniciar sesión</button>
+            <button class="btn btn-ghost" type="button" id="auth-switch">¿No tenés cuenta? Registrate</button>
           </form>
         </div>
       </section>

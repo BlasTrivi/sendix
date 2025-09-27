@@ -556,6 +556,7 @@ body.route-conversaciones.chat-has-active #chat-back{ display:inline-flex !impor
   flex-direction: column;
   gap: 14px;
 }
+.login-form .btn-ghost{ width: 100%; }
 .login-btn {
   width: 100%;
   margin-top: 10px;
