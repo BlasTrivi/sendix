@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import authRouter from './routes/auth.js';
 import protectedRouter from './routes/protected.js';
 
@@ -17,6 +19,16 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/auth', authRouter);
 app.use('/api', protectedRouter);
+
+// Static frontend (serve SPA)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontRoot = path.resolve(__dirname, '..'); // /workspaces/sendix
+app.use(express.static(frontRoot));
+// SPA fallback except API routes
+app.get(/^(?!\/api).*/, (_req, res) => {
+  res.sendFile(path.join(frontRoot, 'index.html'));
+});
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
