@@ -195,6 +195,8 @@ function initPublishForm(){
   const preview = document.getElementById('publish-preview');
   const fileInput = document.getElementById('publish-files');
   const filePreviews = document.getElementById('file-previews');
+  const fileDrop = document.getElementById('file-drop');
+  const btnSelectFiles = document.getElementById('btn-select-files');
   let pendingFiles = [];
   function updatePreview() {
     const data = Object.fromEntries(new FormData(form).entries());
@@ -218,6 +220,30 @@ function initPublishForm(){
     }
   }
   form.addEventListener('input', updatePreview);
+  function renderFileCards(){
+    if(!filePreviews) return;
+    filePreviews.innerHTML = '';
+    pendingFiles.forEach((a, idx)=>{
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      const del = document.createElement('button'); del.className = 'file-del'; del.type='button'; del.title='Quitar'; del.textContent='✕';
+      del.onclick = ()=>{ pendingFiles.splice(idx,1); renderFileCards(); updatePreview(); };
+      if(a.type.startsWith('image/') && a.preview){
+        const img = document.createElement('img'); img.src = a.preview; img.alt = a.name; card.appendChild(img);
+      } else {
+        const chip = document.createElement('span'); chip.className='file-chip'; chip.textContent = a.name; card.appendChild(chip);
+      }
+      const info = document.createElement('div'); info.className='file-info';
+      const nm = document.createElement('div'); nm.className='file-name'; nm.textContent = a.name;
+      const kb = Math.max(1, Math.round((a.size||0)/1024));
+      const meta = document.createElement('div'); meta.className='file-meta'; meta.textContent = `${kb} KB`;
+      info.appendChild(nm); info.appendChild(meta); card.appendChild(info); card.appendChild(del);
+      filePreviews.appendChild(card);
+    });
+    filePreviews.style.display = pendingFiles.length? 'flex':'none';
+  }
+
+  if(btnSelectFiles){ btnSelectFiles.onclick = ()=> fileInput?.click(); }
   if(fileInput){
     fileInput.addEventListener('change', ()=>{
       const files = Array.from(fileInput.files||[]);
@@ -226,22 +252,7 @@ function initPublishForm(){
       function maybeDone(){
         if(pendingReads>0) return;
         // Render previews
-        if(filePreviews){
-          filePreviews.innerHTML = '';
-          pendingFiles.forEach(a=>{
-            if(a.type.startsWith('image/') && a.preview){
-              const img = document.createElement('img');
-              img.src = a.preview; img.alt = a.name; img.loading = 'lazy';
-              filePreviews.appendChild(img);
-            } else {
-              const span = document.createElement('span');
-              span.className = 'file-chip';
-              span.textContent = a.name;
-              filePreviews.appendChild(span);
-            }
-          });
-          filePreviews.style.display = pendingFiles.length? 'flex':'none';
-        }
+        renderFileCards();
         updatePreview();
       }
       files.forEach(f=>{
@@ -261,6 +272,31 @@ function initPublishForm(){
         }
       });
       maybeDone();
+    });
+  }
+  if(fileDrop){
+    function cancel(e){ e.preventDefault(); e.stopPropagation(); }
+    ['dragenter','dragover'].forEach(ev=> fileDrop.addEventListener(ev, (e)=>{ cancel(e); fileDrop.classList.add('dragover'); }));
+    ;['dragleave','drop'].forEach(ev=> fileDrop.addEventListener(ev, (e)=>{ cancel(e); fileDrop.classList.remove('dragover'); }));
+    fileDrop.addEventListener('drop', (e)=>{
+      const dt = e.dataTransfer; const files = Array.from(dt?.files||[]);
+      if(!files.length) return;
+      // Merge con existentes
+      const all = files; // podría limitar cantidad si se desea
+      let pendingReads = 0;
+      all.forEach(f=>{
+        const item = { name: f.name, type: f.type||'', size: f.size||0 };
+        if(f.type && f.type.startsWith('image/')){
+          pendingReads++;
+          const reader = new FileReader();
+          reader.onload = (ev)=>{ item.preview = String(ev.target?.result||''); pendingFiles.push(item); pendingReads--; if(pendingReads===0){ renderFileCards(); updatePreview(); } };
+          reader.onerror = ()=>{ pendingReads--; pendingFiles.push(item); if(pendingReads===0){ renderFileCards(); updatePreview(); } };
+          reader.readAsDataURL(f);
+        } else {
+          pendingFiles.push(item);
+        }
+      });
+      if(pendingReads===0){ renderFileCards(); updatePreview(); }
     });
   }
   form.addEventListener('submit', (e)=>{

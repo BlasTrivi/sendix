@@ -176,10 +176,18 @@
             <label><span>📝</span> Descripción / Comentarios
               <textarea name="descripcion" rows="3" placeholder="Detalles de la carga, requerimientos, observaciones…"></textarea>
             </label>
-            <div>
-              <label class="file-label"><span>📎</span> Adjuntar archivos
-                <input type="file" id="publish-files" name="adjuntos" multiple accept="image/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
-              </label>
+            <div class="file-uploader" id="file-uploader">
+              <div class="file-drop" id="file-drop" tabindex="0" aria-label="Adjuntar archivos">
+                <div class="file-drop-inner">
+                  <div class="file-icon" aria-hidden="true">📎</div>
+                  <div class="file-text">
+                    <strong>Adjuntar archivos</strong>
+                    <span class="muted">Arrastrá y soltá aquí o</span>
+                  </div>
+                  <button type="button" class="btn" id="btn-select-files">Elegir archivos</button>
+                </div>
+                <input type="file" id="publish-files" name="adjuntos" multiple accept="image/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
+              </div>
               <div id="file-previews" class="file-previews" style="display:none"></div>
             </div>
             <div id="publish-preview" class="publish-preview"></div>
