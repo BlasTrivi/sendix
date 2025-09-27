@@ -355,18 +355,23 @@ function updateChrome(){
 // PERFIL propio o de terceros (solo SENDIX)
 function renderProfile(emailToView){
   const isSendix = state.user?.role==='sendix';
-  const container = document.getElementById('profile-view');
   const title = document.getElementById('profile-title');
   const back = document.getElementById('profile-back');
   const saveBtn = document.getElementById('profile-save');
   const form = document.getElementById('profile-form');
-  if(!container || !form) return;
+  if(!form) return;
   // Target: propio por defecto; si SENDIX pasó email, ver de terceros (read-only)
   const email = (emailToView || form.dataset.viewEmail || state.user?.email || '').toLowerCase();
   const viewingOther = isSendix && email && email !== String(state.user?.email||'').toLowerCase();
   // Encontrar fuente
   const me = viewingOther ? (state.users||[]).find(u=> String(u.email||'').toLowerCase()===email) : state.user;
-  if(!me){ container.innerHTML = '<div class="muted">Perfil no encontrado.</div>'; return; }
+  if(!me){
+    if(title) title.textContent = 'Perfil';
+    if(back) back.onclick = ()=> navigate('home');
+    if(saveBtn) saveBtn.style.display = 'none';
+    form.innerHTML = '<div class="muted">Perfil no encontrado.</div>';
+    return;
+  }
   title.textContent = viewingOther ? `Perfil de ${me.name||me.email||'Usuario'}` : 'Mi perfil';
   if(back) back.onclick = ()=>{ if(viewingOther) navigate('usuarios'); else navigate('home'); };
   // Renderizar campos según rol
@@ -520,7 +525,7 @@ function initPublishForm(){
         <span>📍 <b>Origen:</b> ${escapeHtml(data.origen||'-')}</span><br>
         <span>🎯 <b>Destino:</b> ${escapeHtml(data.destino||'-')}</span><br>
         <span>📦 <b>Tipo:</b> ${escapeHtml(data.tipo||'-')}</span><br>
-        <span>� <b>Cantidad:</b> ${escapeHtml(data.cantidad||'-')} ${escapeHtml(data.unidad||'')}</span><br>
+        <span>🔢 <b>Cantidad:</b> ${escapeHtml(data.cantidad||'-')} ${escapeHtml(data.unidad||'')}</span><br>
         <span>📐 <b>Dimensiones:</b> ${escapeHtml(data.dimensiones||'-')}</span><br>
         <span>⚖️ <b>Peso:</b> ${escapeHtml(data.peso||'-')} kg · 🧪 <b>Volumen:</b> ${escapeHtml(data.volumen||'-')} m³</span><br>
         <span>📅 <b>Fecha y hora:</b> ${data.fechaHora? new Date(data.fechaHora).toLocaleString() : '-'}</span><br>
