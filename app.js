@@ -174,7 +174,8 @@ async function tryRefreshToken(){
   try{
     const rr = await fetch(`${API_BASE}/api/auth/refresh`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ refreshToken: state.tokens?.refreshToken }) });
     if(!rr.ok) return false;
-    const data = await rr.json();
+    const data = await rr.text().then(t=>{ try{return JSON.parse(t)}catch{return null} });
+    if(!data || !data.accessToken) return false;
     state.tokens = { accessToken: data.accessToken, refreshToken: data.refreshToken };
     save();
     return true;
@@ -182,8 +183,13 @@ async function tryRefreshToken(){
 }
 async function apiRegister({ name, email, password, role }){
   const res = await fetch(`${API_BASE}/api/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password, role }) });
-  if(!res.ok) throw new Error((await res.json()).error || 'Registro falló');
-  const data = await res.json();
+  const text = await res.text();
+  let data = null; try{ data = JSON.parse(text) }catch{}
+  if(!res.ok){
+    const msg = (data && data.error) || text || 'Registro falló';
+    throw new Error(msg);
+  }
+  if(!data){ throw new Error('Respuesta inválida del servidor'); }
   const mappedRole = mapBackendRoleToFront(data.user.role);
   state.user = { id: data.user.id, name, email: data.user.email, role: mappedRole };
   state.tokens = { accessToken: data.accessToken, refreshToken: data.refreshToken };
@@ -191,8 +197,13 @@ async function apiRegister({ name, email, password, role }){
 }
 async function apiLogin({ name, email, password }){
   const res = await fetch(`${API_BASE}/api/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password }) });
-  if(!res.ok) throw new Error((await res.json()).error || 'Login falló');
-  const data = await res.json();
+  const text = await res.text();
+  let data = null; try{ data = JSON.parse(text) }catch{}
+  if(!res.ok){
+    const msg = (data && data.error) || text || 'Login falló';
+    throw new Error(msg);
+  }
+  if(!data){ throw new Error('Respuesta inválida del servidor'); }
   const mappedRole = mapBackendRoleToFront(data.user.role);
   state.user = { id: data.user.id, name, email: data.user.email, role: mappedRole };
   state.tokens = { accessToken: data.accessToken, refreshToken: data.refreshToken };
