@@ -175,6 +175,8 @@ function initLogin(){
   const loginForm = document.getElementById('auth-login-form');
   const openReg = document.getElementById('auth-open-register');
   const regWrap = document.getElementById('auth-register');
+  const loginCtas = document.getElementById('auth-register-cta');
+  const sendixRow = document.getElementById('auth-sendix-row');
   const backLogin = document.getElementById('auth-back-login');
   const regCompany = document.getElementById('register-company');
   const regCarrier = document.getElementById('register-carrier');
@@ -199,8 +201,24 @@ function initLogin(){
   if(sendixDemo){
     sendixDemo.onclick = ()=>{ state.user = { name:'Nexo SENDIX', role:'sendix', email:'sendix@demo' }; save(); updateChrome(); navigate('home'); };
   }
-  if(openReg){ openReg.onclick = ()=>{ regWrap.style.display='grid'; if(regCompany) regCompany.style.display='grid'; if(regCarrier) regCarrier.style.display='none'; } }
-  if(backLogin){ backLogin.onclick = ()=>{ regWrap.style.display='none'; } }
+  if(openReg){
+    openReg.onclick = ()=>{
+      if(regWrap) regWrap.style.display='grid';
+      if(loginForm) loginForm.style.display='none';
+      if(loginCtas) loginCtas.style.display='none';
+      if(sendixRow) sendixRow.style.display='none';
+      if(regCompany) regCompany.style.display='grid';
+      if(regCarrier) regCarrier.style.display='none';
+    };
+  }
+  if(backLogin){
+    backLogin.onclick = ()=>{
+      if(regWrap) regWrap.style.display='none';
+      if(loginForm) loginForm.style.display='grid';
+      if(loginCtas) loginCtas.style.display='flex';
+      if(sendixRow) sendixRow.style.display='flex';
+    };
+  }
   if(tabCompany){ tabCompany.onclick = ()=>{ if(regCompany) regCompany.style.display='grid'; if(regCarrier) regCarrier.style.display='none'; } }
   if(tabCarrier){ tabCarrier.onclick = ()=>{ if(regCompany) regCompany.style.display='none'; if(regCarrier) regCarrier.style.display='grid'; } }
   if(cargasAll){
