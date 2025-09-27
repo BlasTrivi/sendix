@@ -127,6 +127,10 @@ function navigate(route){
   if(route==='resumen'){ try{ requireRole('sendix'); renderMetrics(); }catch(e){} }
   if(route==='tracking') renderTracking();
   if(route==='conversaciones') reflectMobileChatState(); else document.body.classList.remove('chat-has-active');
+  // Asegurar que el indicador de escritura no quede visible fuera del chat
+  if(route!=='conversaciones'){
+    try{ const ti = document.getElementById('typing-indicator'); if(ti) ti.style.display='none'; }catch{}
+  }
   // Recalcular altura por si la UI cambió
   updateBottomBarHeight();
   // Reset del flag luego de navegar
@@ -141,6 +145,9 @@ function initNav(){
   });
   // Permitir que las tarjetas del home sean clickeables en toda su superficie
   document.addEventListener('click', (e)=>{
+    // Ignorar clicks en elementos de entrada para no interferir
+    const tag = (e.target.tagName||'').toLowerCase();
+    if(tag==='input' || tag==='textarea' || tag==='select' || e.target.isContentEditable){ return; }
     const target = e.target.closest('.card[data-nav]');
     if(target){
       // Evitar doble navegación si se hizo click en el botón interno
@@ -926,7 +933,7 @@ function renderChat(){
   const ta = document.getElementById('chat-textarea');
   // Autosize textarea
   function autoresize(){ if(!ta) return; ta.style.height='auto'; ta.style.height = Math.min(160, Math.max(40, ta.scrollHeight)) + 'px'; }
-  if(ta) ta.oninput = ()=>{ autoresize(); showTyping(); };
+  if(ta) ta.oninput = (e)=>{ autoresize(); showTyping(); };
   autoresize();
 
   // Enviar con Enter, saltos con Shift+Enter
@@ -1026,6 +1033,12 @@ function renderChat(){
   };
   // Fades en scroll
   box.onscroll = updateChatFades;
+  // Ocultar indicador si se hace clic fuera del textarea de chat
+  document.addEventListener('click', (ev)=>{
+    const insideChat = ev.target.closest && (ev.target.closest('.chat-input') || ev.target.closest('#chat-box'));
+    if(!insideChat){ hideTyping(); }
+  }, { once: true, capture: true });
+  if(ta){ ta.addEventListener('blur', hideTyping); }
   reflectMobileChatState();
 }
 
@@ -1049,6 +1062,10 @@ let typingTimeout;
 function showTyping(){
   const el = document.getElementById('typing-indicator');
   if(!el) return;
+  // Mostrar solo si estamos en conversaciones y hay textarea activo
+  const route = (location.hash.replace('#','')||'home');
+  const ta = document.getElementById('chat-textarea');
+  if(route!=='conversaciones' || !ta){ return; }
   el.style.display = 'block';
   el.textContent = 'Escribiendo…';
   clearTimeout(typingTimeout);
@@ -1058,6 +1075,7 @@ function hideTyping(){
   const el = document.getElementById('typing-indicator');
   if(!el) return;
   el.style.display = 'none';
+  clearTimeout(typingTimeout);
 }
 
 // Tracking global por envío
