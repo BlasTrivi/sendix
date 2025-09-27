@@ -46,6 +46,32 @@ function save(){
   localStorage.setItem('sendix.commissions', JSON.stringify(state.commissions||[]));
 }
 
+// Utils de usuarios/auth
+function isValidEmail(email){
+  const s = String(email||'').trim();
+  // Regex simple y suficiente para demo
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s);
+}
+function findUserByEmail(email){
+  const key = String(email||'').toLowerCase();
+  return (state.users||[]).find(u=> String(u.email||'').toLowerCase()===key) || null;
+}
+function reconcileSessionWithUsers(){
+  try{
+    if(!state.user){ return; }
+    const currentEmail = String(state.user.email||'').toLowerCase();
+    const u = findUserByEmail(currentEmail);
+    if(!u){
+      // Si la sesión apunta a un email inexistente, limpiar sesión
+      state.user = null; save();
+      return;
+    }
+    // Sincronizar sesión con el registro guardado (rol y datos correctos)
+    state.user = { ...u };
+    save();
+  }catch{}
+}
+
 function upsertUser(u){
   if(!u) return;
   const email = (u.email||'').toLowerCase();
@@ -198,22 +224,35 @@ function initLogin(){
   const tabCarrier = document.getElementById('reg-tab-carrier');
   const cargasAll = document.getElementById('cargas-all');
   const sendixDemo = document.getElementById('auth-sendix-demo');
+  const forgot = document.getElementById('auth-forgot');
 
   if(loginForm){
     loginForm.addEventListener('submit', (e)=>{
       e.preventDefault();
       const data = Object.fromEntries(new FormData(loginForm).entries());
-      const email = String(data.email||'').trim().toLowerCase();
+      const emailRaw = String(data.email||'').trim();
+      const email = emailRaw.toLowerCase();
       const pass = String(data.password||'');
-      if(!email || pass.length<6){ alert('Completá email y contraseña válida (6+ caracteres).'); return; }
-      // Demo: determinar rol por sufijos para probar
-      const role = email.endsWith('+empresa@demo') ? 'empresa' : email.endsWith('+transp@demo') ? 'transportista' : email.endsWith('+sendix@demo') ? 'sendix' : 'empresa';
-      state.user = { name: email.split('@')[0], role, email };
+      if(!isValidEmail(emailRaw) || pass.length<6){ alert('Completá email válido y contraseña (6+ caracteres).'); return; }
+      const u = findUserByEmail(email);
+      if(!u){
+        alert('No existe una cuenta con ese email. Registrate primero.');
+        try{ loginForm.querySelector('input[name="email"]').value=''; loginForm.querySelector('input[name="email"]').focus(); }catch{}
+        state.user = null; save(); updateChrome();
+        return;
+      }
+      if(String(u.password||'') !== pass){
+        alert('Contraseña incorrecta.');
+        try{ loginForm.querySelector('input[name="password"]').value=''; loginForm.querySelector('input[name="password"]').focus(); }catch{}
+        return;
+      }
+      // Login correcto: sesión exacta al registro
+      state.user = { ...u };
       save(); updateChrome(); navigate('home');
     });
   }
   if(sendixDemo){
-    sendixDemo.onclick = ()=>{ state.user = { name:'Nexo SENDIX', role:'sendix', email:'sendix@demo' }; save(); updateChrome(); navigate('home'); };
+    sendixDemo.onclick = ()=>{ state.user = { name:'Nexo SENDIX', role:'sendix', email:'sendix@demo', password: '' }; upsertUser(state.user); save(); updateChrome(); navigate('home'); };
   }
   if(openReg){
     openReg.onclick = ()=>{
@@ -223,6 +262,17 @@ function initLogin(){
       if(sendixRow) sendixRow.style.display='none';
       if(regCompany) regCompany.style.display='grid';
       if(regCarrier) regCarrier.style.display='none';
+    };
+  }
+  if(forgot){
+    forgot.onclick = (e)=>{
+      e.preventDefault();
+      const mail = prompt('Ingresá tu email para restablecer:');
+      if(!mail) return;
+      if(!isValidEmail(mail)){ alert('Email inválido.'); return; }
+      const u = findUserByEmail(mail);
+      if(!u){ alert('No existe una cuenta con ese email.'); return; }
+      alert('Te enviamos un enlace de restablecimiento (demo).');
     };
   }
   if(backLogin){
@@ -246,8 +296,11 @@ function initLogin(){
       e.preventDefault();
       const data = Object.fromEntries(new FormData(regCompany).entries());
       if(!data.terms){ alert('Debés aceptar los términos y condiciones.'); return; }
+      if(!isValidEmail(data.email||'')){ alert('Ingresá un email válido.'); return; }
+      const exists = !!findUserByEmail(String(data.email||'').toLowerCase());
+      if(exists){ alert('Ya existe una cuenta con ese email.'); return; }
       // Persistimos usuario empresa
-      state.user = { name: String(data.companyName||'Empresa'), role:'empresa', email: String(data.email||''), phone: String(data.phone||''), taxId: String(data.taxId||'') };
+      state.user = { name: String(data.companyName||'Empresa'), companyName: String(data.companyName||''), role:'empresa', email: String(data.email||''), password: String(data.password||''), phone: String(data.phone||''), taxId: String(data.taxId||'') };
       upsertUser(state.user);
       save(); updateChrome(); navigate('home');
     });
@@ -260,12 +313,16 @@ function initLogin(){
       const cargas = Array.from(regCarrier.querySelectorAll('input[name="cargas"]:checked')).map(el=>el.value);
       const vehiculos = Array.from(regCarrier.querySelectorAll('input[name="vehiculos"]:checked')).map(el=>el.value);
       if(!data.terms){ alert('Debés aceptar los términos y condiciones.'); return; }
+      if(!isValidEmail(data.email||'')){ alert('Ingresá un email válido.'); return; }
+      const exists = !!findUserByEmail(String(data.email||'').toLowerCase());
+      if(exists){ alert('Ya existe una cuenta con ese email.'); return; }
       if(cargas.length===0){ alert('Seleccioná al menos un tipo de carga.'); return; }
       if(vehiculos.length===0){ alert('Seleccioná al menos un tipo de vehículo.'); return; }
       // Persistimos usuario transportista
       const fullName = `${data.firstName||''} ${data.lastName||''}`.trim();
-      state.user = { name: fullName||'Transportista', role:'transportista', email: String(data.email||''), perfil:{
+      state.user = { name: fullName||'Transportista', role:'transportista', email: String(data.email||''), password: String(data.password||''), perfil:{
         cargas, vehiculos, alcance: String(data.alcance||''),
+        firstName: String(data.firstName||''), lastName: String(data.lastName||''),
         dni: String(data.dni||''), seguroOk: !!regCarrier.querySelector('input[name="seguroOk"]')?.checked,
         tipoSeguro: String(data.tipoSeguro||''), senasa: !!regCarrier.querySelector('input[name="senasa"]')?.checked,
         imo: !!regCarrier.querySelector('input[name="imo"]')?.checked,
@@ -288,9 +345,9 @@ function updateChrome(){
   } else badge.textContent='';
   document.getElementById('logout')?.addEventListener('click', ()=>{ state.user=null; save(); updateChrome(); navigate('login'); });
   document.getElementById('open-profile')?.addEventListener('click', ()=> navigate('perfil'));
-  document.getElementById('nav-empresa').classList.toggle('visible', state.user?.role==='empresa');
-  document.getElementById('nav-transportista').classList.toggle('visible', state.user?.role==='transportista');
-  document.getElementById('nav-sendix').classList.toggle('visible', state.user?.role==='sendix');
+  document.getElementById('nav-empresa')?.classList.toggle('visible', state.user?.role==='empresa');
+  document.getElementById('nav-transportista')?.classList.toggle('visible', state.user?.role==='transportista');
+  document.getElementById('nav-sendix')?.classList.toggle('visible', state.user?.role==='sendix');
   // Recalcular altura de la barra inferior cuando cambie la visibilidad por rol
   updateBottomBarHeight();
 }
@@ -331,14 +388,14 @@ function renderProfile(emailToView){
   // Estructura de formulario
   let html = '';
   if(role==='empresa'){
-    html += inputRow('Nombre/Empresa','companyName', me.companyName||me.name||'');
+    html += inputRow('Nombre/Empresa','companyName', (me.companyName||'') || (me.name||''));
     html += inputRow('Email','email', me.email||'', 'email');
     html += inputRow('Teléfono','phone', me.phone||'');
     html += inputRow('DNI/CUIL/CUIT','taxId', me.taxId||'');
   } else if(role==='transportista'){
     const perfil = me.perfil||{};
-    const [firstName='', ...rest] = (me.name||'').split(' ');
-    const lastName = perfil.lastName || rest.join(' ');
+    const firstName = perfil.firstName || (me.name||'').split(' ')[0] || '';
+    const lastName = perfil.lastName || (me.name||'').split(' ').slice(1).join(' ');
     html += `<div class="row" style="gap:8px">`+
             `<label style="flex:1">Nombre<input ${(viewingOther?'disabled':'')} name="firstName" value="${escapeHtml(perfil.firstName||firstName)}"/></label>`+
             `<label style="flex:1">Apellido<input ${(viewingOther?'disabled':'')} name="lastName" value="${escapeHtml(lastName)}"/></label>`+
@@ -363,6 +420,7 @@ function renderProfile(emailToView){
   if(!viewingOther && saveBtn){
     saveBtn.onclick = ()=>{
       const data = Object.fromEntries(new FormData(form).entries());
+      const oldEmail = String(state.user.email||'');
       if(role==='empresa'){
         state.user = { ...state.user, name: data.companyName||state.user.name, companyName: data.companyName||'', email: data.email||state.user.email, phone: data.phone||'', taxId: data.taxId||'' };
       } else if(role==='transportista'){
@@ -385,7 +443,21 @@ function renderProfile(emailToView){
       } else {
         state.user = { ...state.user, name: data.name||state.user.name, email: data.email||state.user.email };
       }
-      upsertUser(state.user);
+      // Si cambió el email, actualizar registro sin duplicar
+      const newEmail = String(state.user.email||'');
+      if(isValidEmail(newEmail) && oldEmail.toLowerCase()!==newEmail.toLowerCase()){
+        // Evitar conflicto si ya existe otro usuario con ese email
+        const existing = findUserByEmail(newEmail.toLowerCase());
+        if(existing && String(existing.email||'').toLowerCase() !== oldEmail.toLowerCase()){
+          alert('Ese email ya está en uso por otra cuenta.');
+          return;
+        }
+        // Insertar/actualizar nuevo y remover viejo
+        upsertUser(state.user);
+        state.users = (state.users||[]).filter(u=> String(u.email||'').toLowerCase() !== oldEmail.toLowerCase());
+      } else {
+        upsertUser(state.user);
+      }
       save(); updateChrome(); alert('Perfil actualizado');
     };
   }
@@ -1556,7 +1628,7 @@ function renderHome(){
 
 // Init
 document.addEventListener('DOMContentLoaded', ()=>{
-  initNav(); initLogin(); initPublishForm(); updateChrome();
+  initNav(); initLogin(); initPublishForm(); reconcileSessionWithUsers(); updateChrome();
   const start = state.user ? (location.hash.replace('#','')||'home') : 'login';
   navigate(start);
   // Shortcut: Ctrl/Cmd+K para buscar chats
