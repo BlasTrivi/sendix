@@ -5,6 +5,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Backend folder (avoid re-adding backend to this repo)
+server/
+
 # Env files
 .env
 .env.*
