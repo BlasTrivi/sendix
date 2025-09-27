@@ -12,8 +12,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
-// Error handler mínimo para capturar errores y responder JSON coherente
-app.use((req, res, next)=>{ res.setHeader('Content-Type','application/json'); next(); });
 
 app.get('/health', (_req, res) => {
   res.json({ ok: true, time: new Date().toISOString() });

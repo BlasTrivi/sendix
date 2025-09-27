@@ -153,8 +153,11 @@ function requireRole(role){
 
 // AUTH
 // --- API client (Express) ---
-// Si servimos el front desde Express, podemos usar rutas relativas
-const API_BASE = (window.SENDIX_API_BASE || '');
+// Base de API dinámica: si la app se sirve por http/https, usar mismo origen (rutas relativas).
+// Si se abre como file:// (o se define SENDIX_API_BASE), usar el host del backend.
+const API_BASE = (typeof window !== 'undefined' && window.SENDIX_API_BASE)
+  ? window.SENDIX_API_BASE
+  : (['http:', 'https:'].includes(location.protocol) ? '' : 'http://localhost:3001');
 async function apiFetch(path, { method='GET', headers={}, body, auth=true }={}){
   const h = { 'Content-Type': 'application/json', ...headers };
   if(auth && state.tokens?.accessToken) h.Authorization = `Bearer ${state.tokens.accessToken}`;
