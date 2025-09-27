@@ -249,7 +249,7 @@ function initLogin(){
       if(vehiculos.length===0){ alert('Seleccioná al menos un tipo de vehículo.'); return; }
       // Persistimos usuario transportista
       const fullName = `${data.firstName||''} ${data.lastName||''}`.trim();
-      state.user = { name: fullName||'Transportista', role:'transportista', email: String(data.email||''), perfil:{ cargas, vehiculos } };
+      state.user = { name: fullName||'Transportista', role:'transportista', email: String(data.email||''), perfil:{ cargas, vehiculos, alcance: String(data.alcance||'') } };
       save(); updateChrome(); navigate('home');
     });
   }
