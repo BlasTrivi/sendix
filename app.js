@@ -711,6 +711,145 @@ function renderMetrics(){
       if(c){ c.status='invoiced'; c.invoiceAt = new Date().toISOString(); save(); renderMetrics(); }
     }));
   }
+
+  // Panel de control por transportista (mensual)
+  const carrierList = document.getElementById('carrier-list');
+  const periodInput = document.getElementById('carrier-period');
+  const cutInput = document.getElementById('carrier-cut');
+  const detailList = document.getElementById('carrier-commissions-detail');
+  const carrierTotalEl = document.getElementById('carrier-total');
+  const carrierCountEl = document.getElementById('carrier-count');
+  const carrierEmpty = document.getElementById('carrier-empty');
+  const btnInvoicePeriod = document.getElementById('carrier-invoice-period');
+  const btnExportCsv = document.getElementById('carrier-export-csv');
+  const adminWrap = document.getElementById('commission-admin');
+  if(carrierList && periodInput && detailList && adminWrap){
+    // Inicializar mes actual si está vacío
+    if(!periodInput.value){
+      const d = new Date();
+      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      periodInput.value = ym;
+    }
+    // Lista de transportistas a partir de comisiones
+    const carriers = Array.from(new Set((state.commissions||[]).map(c=>c.carrier))).sort((a,b)=>a.localeCompare(b));
+    carrierList.innerHTML = carriers.length ? carriers.map(name=>{
+      const selected = adminWrap.dataset.selectedCarrier===name;
+      // Sumar del período/corte seleccionado para badge
+      const {start,end} = periodRange(periodInput.value, cutInput?.value||'full');
+      const totalMonth = sum((state.commissions||[]).filter(c=>c.carrier===name && new Date(c.createdAt)>=start && new Date(c.createdAt)<end).map(c=>c.amount));
+      const badge = totalMonth ? `<span class="badge-pill">$${totalMonth.toLocaleString('es-AR')}</span>` : '';
+      return `<li class="row ${selected?'active':''}" data-carrier="${name}"><strong>${name}</strong>${badge}</li>`;
+    }).join('') : '<li class="muted">Sin transportistas aún.</li>';
+    // Selección
+    carrierList.querySelectorAll('[data-carrier]')?.forEach(li=> li.onclick = ()=>{
+      adminWrap.dataset.selectedCarrier = li.dataset.carrier;
+      renderMetrics();
+    });
+  // Cambios de período/corte
+  periodInput.onchange = ()=> renderMetrics();
+  if(cutInput) cutInput.onchange = ()=> renderMetrics();
+
+    // Render detalle del seleccionado
+    const selected = adminWrap.dataset.selectedCarrier || '';
+    if(!selected){
+      carrierEmpty.style.display = 'block';
+      detailList.innerHTML = '';
+      if(carrierTotalEl) carrierTotalEl.textContent = '$0';
+      if(carrierCountEl) carrierCountEl.textContent = '0';
+      if(btnInvoicePeriod) btnInvoicePeriod.disabled = true;
+    } else {
+      carrierEmpty.style.display = 'none';
+  const {start,end} = periodRange(periodInput.value, cutInput?.value||'full');
+      const items = (state.commissions||[]).filter(c=>c.carrier===selected && new Date(c.createdAt)>=start && new Date(c.createdAt)<end);
+      const total = sum(items.map(c=>c.amount));
+      if(carrierTotalEl) carrierTotalEl.textContent = '$'+ total.toLocaleString('es-AR');
+      if(carrierCountEl) carrierCountEl.textContent = String(items.length);
+      detailList.innerHTML = items.length ? items.map(c=>{
+        const l = state.loads.find(x=>x.id===c.loadId);
+        const status = c.status==='pending'? '<span class="badge">Pendiente</span>' : `<span class="badge ok">Facturada</span>`;
+        return `<li class="row">
+          <div>
+            <div><strong>${l?.origen||'?'} → ${l?.destino||'?'}</strong> <span class="muted">(${l?.owner||'-'})</span></div>
+            <div class="muted">Oferta $${c.price.toLocaleString('es-AR')} · Comisión 10% $${c.amount.toLocaleString('es-AR')}</div>
+          </div>
+          <div>${status}</div>
+        </li>`;
+      }).join('') : '<li class="muted">Sin comisiones en el período seleccionado.</li>';
+      if(btnInvoicePeriod){
+        btnInvoicePeriod.disabled = items.every(c=>c.status==='invoiced') || !items.length;
+        btnInvoicePeriod.onclick = ()=>{
+          const ids = items.filter(c=>c.status!=='invoiced').map(c=>c.id);
+          if(!ids.length) return;
+          if(!confirm(`Marcar ${ids.length} comisión(es) como facturadas para ${selected}?`)) return;
+          state.commissions.forEach(c=>{ if(ids.includes(c.id)){ c.status='invoiced'; c.invoiceAt = new Date().toISOString(); } });
+          save(); renderMetrics();
+        };
+      }
+      if(btnExportCsv){
+        btnExportCsv.disabled = !items.length;
+        btnExportCsv.onclick = ()=>{
+          const rows = [
+            ['Transportista','Empresa','Origen','Destino','Fecha','Oferta','Comision(10%)','Estado']
+          ];
+          items.forEach(c=>{
+            const l = state.loads.find(x=>x.id===c.loadId);
+            rows.push([
+              selected,
+              l?.owner||'',
+              l?.origen||'',
+              l?.destino||'',
+              new Date(c.createdAt).toLocaleString(),
+              String(c.price),
+              String(c.amount),
+              c.status
+            ]);
+          });
+          const csv = rows.map(r=> r.map(cell=> csvEscape(cell)).join(',')).join('\n');
+          const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          const ym = periodInput.value || '';
+          const cut = (cutInput?.value||'full');
+          a.href = url;
+          a.download = `comisiones_${selected}_${ym}_${cut}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+        };
+      }
+    }
+  }
+}
+
+// Helper de rango mensual [start, end) para un valor input type=month (YYYY-MM)
+function monthRange(ym){
+  // ym como '2025-09'
+  const [y,m] = String(ym||'').split('-').map(n=>parseInt(n,10));
+  const year = isFinite(y) ? y : new Date().getFullYear();
+  const month = isFinite(m) ? (m-1) : new Date().getMonth();
+  const start = new Date(year, month, 1, 0,0,0,0);
+  const end = new Date(year, month+1, 1, 0,0,0,0);
+  return {start, end};
+}
+
+// Rango por corte: full, q1 (1-15), q2 (16-fin)
+function periodRange(ym, cut){
+  const {start, end} = monthRange(ym);
+  if(cut==='q1'){
+    return { start, end: new Date(start.getFullYear(), start.getMonth(), 16, 0,0,0,0) };
+  }
+  if(cut==='q2'){
+    return { start: new Date(start.getFullYear(), start.getMonth(), 16, 0,0,0,0), end };
+  }
+  return {start, end};
+}
+
+// CSV helpers
+function csvEscape(v){
+  const s = String(v==null? '': v);
+  const needs = /[",\n]/.test(s);
+  const esc = s.replaceAll('"','""');
+  return needs ? '"'+esc+'"' : esc;
 }
 
 // Chat (mediación) — por hilo (loadId + carrier) con SENDIX como 3er participante
