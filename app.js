@@ -788,9 +788,10 @@ function renderMetrics(){
       if(btnExportCsv){
         btnExportCsv.disabled = !items.length;
         btnExportCsv.onclick = ()=>{
-          const rows = [
-            ['Transportista','Empresa','Origen','Destino','Fecha','Oferta','Comision(10%)','Estado']
-          ];
+          const ym = periodInput.value || '';
+          const cut = (cutInput?.value||'full');
+          const header = ['Transportista','Empresa','Origen','Destino','Fecha','Oferta_ARS','Comision_ARS','Estado','Periodo','Corte'];
+          const rows = [header];
           items.forEach(c=>{
             const l = state.loads.find(x=>x.id===c.loadId);
             rows.push([
@@ -798,18 +799,18 @@ function renderMetrics(){
               l?.owner||'',
               l?.origen||'',
               l?.destino||'',
-              new Date(c.createdAt).toLocaleString(),
-              String(c.price),
-              String(c.amount),
-              c.status
+              formatDateForCsv(c.createdAt),
+              Number(c.price||0),
+              Number(c.amount||0),
+              c.status,
+              ym,
+              cut
             ]);
           });
-          const csv = rows.map(r=> r.map(cell=> csvEscape(cell)).join(',')).join('\n');
+          const csv = csvBuild(rows, ';');
           const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          const ym = periodInput.value || '';
-          const cut = (cutInput?.value||'full');
           a.href = url;
           a.download = `comisiones_${selected}_${ym}_${cut}.csv`;
           document.body.appendChild(a);
@@ -850,6 +851,24 @@ function csvEscape(v){
   const needs = /[",\n]/.test(s);
   const esc = s.replaceAll('"','""');
   return needs ? '"'+esc+'"' : esc;
+}
+
+function csvBuild(rows, delimiter=','){
+  // Incluir BOM para Excel y CRLF
+  const sep = delimiter || ',';
+  const lines = rows.map(r=> r.map(cell=> csvEscape(cell)).join(sep)).join('\r\n');
+  const bom = '\uFEFF';
+  return bom + lines + '\r\n';
+}
+
+function formatDateForCsv(date){
+  const d = new Date(date);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mi = String(d.getMinutes()).padStart(2,'0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 }
 
 // Chat (mediación) — por hilo (loadId + carrier) con SENDIX como 3er participante
