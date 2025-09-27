@@ -9,6 +9,17 @@
 // Nexo + Chat 3 partes + Tracking global por envío (LocalStorage, flujo: SENDIX filtra -> Empresa selecciona)
 const routes = ['login','home','publicar','mis-cargas','ofertas','mis-postulaciones','mis-envios','moderacion','conversaciones','resumen','chat','tracking'];
 const SHIP_STEPS = ['pendiente','en-carga','en-camino','entregado'];
+// Comisión SENDIX
+const COMM_RATE = 0.10; // 10%
+function commissionFor(price){
+  const n = Number(price||0);
+  // Redondeo a entero ARS
+  return Math.round(n * COMM_RATE);
+}
+function totalForCompany(price){
+  const n = Number(price||0);
+  return Math.round(n + commissionFor(n));
+}
 
 const state = {
   user: JSON.parse(localStorage.getItem('sendix.user') || 'null'),
@@ -20,6 +31,7 @@ const state = {
   activeShipmentProposalId: null,
   reads: JSON.parse(localStorage.getItem('sendix.reads') || '{}'), // { threadId: { [userName]: lastTs } }
   justOpenedChat: false,
+  commissions: JSON.parse(localStorage.getItem('sendix.commissions') || '[]') // {id, proposalId, loadId, owner, carrier, price, rate, amount, status, createdAt, invoiceAt?}
 };
 
 function save(){
@@ -29,6 +41,7 @@ function save(){
   localStorage.setItem('sendix.proposals', JSON.stringify(state.proposals));
   localStorage.setItem('sendix.messages', JSON.stringify(state.messages));
   localStorage.setItem('sendix.step', state.trackingStep);
+  localStorage.setItem('sendix.commissions', JSON.stringify(state.commissions||[]));
 }
 
 // Actualiza la variable CSS --bbar-h según la barra inferior visible
@@ -341,10 +354,10 @@ function renderMyLoadsWithProposals(focus){
       const lastMsg = [...state.messages].reverse().find(m=>m.threadId===threadId);
       const chipClass = (approved.shipStatus==='entregado') ? 'ok' : (approved.shipStatus==='en-camino' ? '' : 'warn');
       const rightActions = isDelivered
-        ? `<div class="row"><strong>$${approved.price.toLocaleString('es-AR')}</strong></div>`
+        ? `<div class="row"><span class="muted">Total</span> <strong>$${totalForCompany(approved.price).toLocaleString('es-AR')}</strong></div>`
         : `<div class="row">
              <span class="badge">Aprobada</span>
-             <strong>$${approved.price.toLocaleString('es-AR')}</strong>
+             <span class="muted">Total</span> <strong>$${totalForCompany(approved.price).toLocaleString('es-AR')}</strong>
              <button class="btn" data-approved-chat="${approved.id}">Chat</button>
              <button class="btn" data-approved-track="${approved.id}">Ver envío</button>
            </div>`;
@@ -368,7 +381,7 @@ function renderMyLoadsWithProposals(focus){
         <div><strong>${p.carrier}</strong> <span class="muted">(${p.vehicle})</span></div>
         <div class="row">
           <span class="badge">Filtrada por SENDIX</span>
-          <strong>$${p.price.toLocaleString('es-AR')}</strong>
+          <span class="muted">Total</span> <strong>$${totalForCompany(p.price).toLocaleString('es-AR')}</strong>
           <button class="btn btn-primary" data-select-win="${p.id}">Seleccionar</button>
         </div>
         <div class="muted" style="flex-basis:100%">${lastMsg ? 'Último: '+new Date(lastMsg.ts).toLocaleString()+' · '+escapeHtml(lastMsg.from)+': '+escapeHtml(lastMsg.text) : 'Aún sin chat (se habilita al seleccionar).'}</div>
@@ -396,6 +409,26 @@ function renderMyLoadsWithProposals(focus){
         else if(pp.status!=='approved'){ pp.status='rejected'; }
       }
     });
+    // Registrar comisión SENDIX (se factura al transportista periódicamente)
+    try{
+      const exists = (state.commissions||[]).some(c=>c.proposalId===winner.id);
+      if(!exists){
+        const load = state.loads.find(x=>x.id===winner.loadId);
+        state.commissions = state.commissions||[];
+        state.commissions.unshift({
+          id: genId(),
+          proposalId: winner.id,
+          loadId: winner.loadId,
+          owner: load?.owner || '-',
+          carrier: winner.carrier,
+          price: Number(winner.price||0),
+          rate: COMM_RATE,
+          amount: commissionFor(winner.price),
+          status: 'pending',
+          createdAt: new Date().toISOString()
+        });
+      }
+    }catch{}
     save();
     alert('Propuesta seleccionada. Se habilitó chat y tracking del envío.');
     openChatByProposalId(winner.id);
@@ -526,7 +559,7 @@ function renderInbox(){
   ul.innerHTML = `<h3>Pendientes</h3>` + (pending.length ? pending.map(p=>{
     const l = state.loads.find(x=>x.id===p.loadId);
     return `<li>
-      <div class="row"><strong>${p.carrier}</strong> <span class="muted">(${p.vehicle})</span> <strong>$${p.price.toLocaleString('es-AR')}</strong></div>
+      <div class="row"><strong>${p.carrier}</strong> <span class="muted">(${p.vehicle})</span> <strong>$${p.price.toLocaleString('es-AR')}</strong> <span class="muted">· Total empresa $${totalForCompany(p.price).toLocaleString('es-AR')}</span></div>
       <div class="muted">Carga: ${l?.origen} ➜ ${l?.destino} · ${l?.tipo} · Cant.: ${l?.cantidad? `${l?.cantidad} ${l?.unidad||''}`:'-'} · Dim.: ${l?.dimensiones||'-'} · Peso: ${l?.peso? l?.peso+' kg':'-'} · Vol: ${l?.volumen? l?.volumen+' m³':'-'} · Fecha: ${l?.fechaHora? new Date(l?.fechaHora).toLocaleString(): (l?.fecha||'-')} · Empresa: ${l?.owner}</div>
       <div class="actions">
         <button class="btn btn-primary" data-filter="${p.id}">Filtrar</button>
@@ -537,7 +570,7 @@ function renderInbox(){
   ul.innerHTML += `<h3 class='mt'>Filtradas por SENDIX</h3>` + (filteredList.length ? filteredList.map(p=>{
     const l = state.loads.find(x=>x.id===p.loadId);
     return `<li>
-      <div class="row"><strong>${p.carrier}</strong> <span class="muted">(${p.vehicle})</span> <strong>$${p.price.toLocaleString('es-AR')}</strong></div>
+      <div class="row"><strong>${p.carrier}</strong> <span class="muted">(${p.vehicle})</span> <strong>$${p.price.toLocaleString('es-AR')}</strong> <span class="muted">· Total empresa $${totalForCompany(p.price).toLocaleString('es-AR')}</span></div>
       <div class="muted">Carga: ${l?.origen} ➜ ${l?.destino} · ${l?.tipo} · Cant.: ${l?.cantidad? `${l?.cantidad} ${l?.unidad||''}`:'-'} · Dim.: ${l?.dimensiones||'-'} · Peso: ${l?.peso? l?.peso+' kg':'-'} · Vol: ${l?.volumen? l?.volumen+' m³':'-'} · Fecha: ${l?.fechaHora? new Date(l?.fechaHora).toLocaleString(): (l?.fecha||'-')} · Empresa: ${l?.owner}</div>
       <div class="actions">
         <span class="badge">Filtrada</span>
@@ -644,6 +677,40 @@ function renderMetrics(){
   document.getElementById('m-rejected').textContent = rejected;
   document.getElementById('m-pending').textContent = pending;
   document.getElementById('m-filtered').textContent = filtered;
+
+  // Comisiones (SENDIX)
+  const comms = state.commissions||[];
+  const sum = (arr)=> arr.reduce((a,b)=>a+Number(b||0),0);
+  const pendingAmt = sum(comms.filter(c=>c.status==='pending').map(c=>c.amount));
+  const now = Date.now();
+  const days30 = 30*24*60*60*1000;
+  const last30Amt = sum(comms.filter(c=>c.status==='invoiced' && c.invoiceAt && (now - new Date(c.invoiceAt).getTime()) <= days30).map(c=>c.amount));
+  const elPending = document.getElementById('m-comm-pending');
+  const el30 = document.getElementById('m-comm-30');
+  if(elPending) elPending.textContent = '$'+ pendingAmt.toLocaleString('es-AR');
+  if(el30) el30.textContent = '$'+ last30Amt.toLocaleString('es-AR');
+
+  const list = document.getElementById('commissions-list');
+  if(list){
+    const items = [...comms].sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
+    list.innerHTML = items.length ? items.map(c=>{
+      const l = state.loads.find(x=>x.id===c.loadId);
+      const status = c.status==='pending'? '<span class="badge">Pendiente</span>' : `<span class="badge ok">Facturada</span>`;
+      const btn = c.status==='pending' ? `<button class="btn" data-invoice="${c.id}">Marcar facturada</button>` : `<span class="muted">${c.invoiceAt? new Date(c.invoiceAt).toLocaleDateString() : ''}</span>`;
+      return `<li class="row">
+        <div>
+          <div><strong>${c.carrier}</strong> <span class="muted">→ ${l?.origen||'?'} → ${l?.destino||'?'} · ${l?.owner||'-'}</span></div>
+          <div class="muted">Oferta $${c.price.toLocaleString('es-AR')} · Comisión (10%) $${c.amount.toLocaleString('es-AR')}</div>
+        </div>
+        <div class="row">${status} ${btn}</div>
+      </li>`;
+    }).join('') : '<li class="muted">Sin comisiones registradas aún.</li>';
+    list.querySelectorAll('[data-invoice]')?.forEach(b=> b.addEventListener('click', ()=>{
+      const id = b.dataset.invoice;
+      const c = state.commissions.find(x=>x.id===id);
+      if(c){ c.status='invoiced'; c.invoiceAt = new Date().toISOString(); save(); renderMetrics(); }
+    }));
+  }
 }
 
 // Chat (mediación) — por hilo (loadId + carrier) con SENDIX como 3er participante
