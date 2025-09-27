@@ -34,19 +34,120 @@
             <img src="assets/logo.png" alt="Logo SENDIX" />
           </div>
           <h2 class="login-title">Bienvenido a <span style="color:var(--accent)">SENDIX</span></h2>
-          <p class="login-desc">La app que agiliza, resuelve y conecta a empresas con transportistas.<br><span class="muted">Simple, rápida y segura.</span></p>
-          <form id="login-form" class="form login-form" autocomplete="off">
-            <label><span>👤</span> Tu nombre
-              <input name="name" placeholder="Ej: Carla / Nexo SENDIX" required/>
+          <p class="login-desc">Conectamos empresas y transportistas. Ingresá o registrate para empezar.</p>
+
+          <!-- Iniciar sesión -->
+          <form id="auth-login-form" class="form login-form" autocomplete="off">
+            <label><span>📧</span> Email
+              <input type="email" name="email" placeholder="tu@email.com" required />
             </label>
-            <fieldset class="roles">
-              <legend>Rol</legend>
-              <label class="radio"><input type="radio" name="role" value="empresa" checked/> Empresa</label>
-              <label class="radio"><input type="radio" name="role" value="transportista"/> Transportista</label>
-              <label class="radio"><input type="radio" name="role" value="sendix"/> SENDIX </label>
-            </fieldset>
-            <button class="btn btn-primary login-btn" type="submit">Entrar</button>
+            <label><span>🔒</span> Contraseña
+              <input type="password" name="password" placeholder="••••••••" minlength="6" required />
+            </label>
+            <div class="row" style="justify-content:space-between">
+              <a href="#" id="auth-forgot" class="muted">¿Olvidaste tu contraseña?</a>
+              <button class="btn btn-primary login-btn" type="submit">Iniciar sesión</button>
+            </div>
           </form>
+
+          <div class="row" style="justify-content:center; gap:8px; margin-top:6px">
+            <span class="muted">¿No tenés cuenta?</span>
+            <button class="btn" id="auth-open-register">Registrarse</button>
+          </div>
+          <div class="row" style="justify-content:center; margin-top:8px">
+            <button class="btn btn-ghost" id="auth-sendix-demo">Acceso SENDIX (demo)</button>
+          </div>
+
+          <!-- Registro -->
+          <div id="auth-register" class="form small" style="display:none; margin-top:14px">
+            <div class="row" style="gap:8px; justify-content:center">
+              <button class="btn" id="reg-tab-company">Cliente/Empresa</button>
+              <button class="btn" id="reg-tab-carrier">Transportista</button>
+              <button class="btn btn-ghost" id="auth-back-login" style="margin-left:auto">Volver a iniciar sesión</button>
+            </div>
+
+            <!-- Registro Empresa -->
+            <form id="register-company" class="form" autocomplete="off" style="display:none">
+              <label>Nombre / Empresa
+                <input name="companyName" placeholder="Ej: Acme S.A." required />
+              </label>
+              <label>Email
+                <input type="email" name="email" required />
+              </label>
+              <label>Contraseña
+                <input type="password" name="password" minlength="6" required />
+              </label>
+              <label>Teléfono
+                <input name="phone" placeholder="Ej: +54 9 11 1234-5678" />
+              </label>
+              <label>DNI / CUIL / CUIT
+                <input name="taxId" placeholder="Ej: 20-12345678-9" required />
+              </label>
+              <label class="row" style="align-items:center; gap:8px">
+                <input type="checkbox" name="terms" required />
+                <span>Acepto los <a href="#" id="terms-link-company">términos y condiciones</a></span>
+              </label>
+              <button class="btn btn-primary" type="submit">Crear cuenta</button>
+            </form>
+
+            <!-- Registro Transportista -->
+            <form id="register-carrier" class="form" autocomplete="off" style="display:none">
+              <div class="row" style="gap:8px">
+                <label style="flex:1">Nombre
+                  <input name="firstName" required />
+                </label>
+                <label style="flex:1">Apellido
+                  <input name="lastName" required />
+                </label>
+              </div>
+              <label>Email
+                <input type="email" name="email" required />
+              </label>
+              <label>Contraseña
+                <input type="password" name="password" minlength="6" required />
+              </label>
+              <label>DNI
+                <input name="dni" required />
+              </label>
+              <fieldset class="roles" style="margin-top:6px">
+                <legend>Tipo de carga (podés elegir varias)</legend>
+                <label class="radio"><input type="checkbox" name="cargas" value="Contenedor"/> Contenedor</label>
+                <label class="radio"><input type="checkbox" name="cargas" value="Granel"/> Granel</label>
+                <label class="radio"><input type="checkbox" name="cargas" value="Carga general"/> Carga General</label>
+                <label class="radio"><input type="checkbox" name="cargas" value="Flete"/> Flete</label>
+                <label class="radio"><input type="checkbox" id="cargas-all"/> Seleccionar todas</label>
+              </fieldset>
+              <fieldset class="roles" style="margin-top:6px">
+                <legend>Tipo de vehículo</legend>
+                <label class="radio"><input type="checkbox" name="vehiculos" value="Liviana"/> Liviana</label>
+                <label class="radio"><input type="checkbox" name="vehiculos" value="Mediana"/> Mediana</label>
+                <label class="radio"><input type="checkbox" name="vehiculos" value="Pesada"/> Pesada</label>
+              </fieldset>
+              <fieldset class="roles" style="margin-top:6px">
+                <legend>Seguros y habilitaciones</legend>
+                <label class="radio"><input type="checkbox" name="seguroOk"/> Seguro al día</label>
+                <label>Tipo de seguro
+                  <input name="tipoSeguro" placeholder="Ej: Responsabilidad civil" />
+                </label>
+                <label class="radio"><input type="checkbox" name="senasa"/> Habilitación SENASA</label>
+                <label class="radio"><input type="checkbox" name="imo"/> Realiza carga IMO</label>
+              </fieldset>
+              <label>Alcance del transporte
+                <select name="alcance">
+                  <option value="Local">Local</option>
+                  <option value="Regional">Regional</option>
+                  <option value="Nacional">Nacional</option>
+                  <option value="Internacional">Internacional</option>
+                </select>
+              </label>
+              <label class="row" style="align-items:center; gap:8px">
+                <input type="checkbox" name="terms" required />
+                <span>Acepto los <a href="#" id="terms-link-carrier">términos y condiciones</a></span>
+              </label>
+              <button class="btn btn-primary" type="submit">Crear cuenta</button>
+            </form>
+
+          </div>
         </div>
       </section>
 

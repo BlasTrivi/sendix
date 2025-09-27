@@ -171,13 +171,70 @@ function requireRole(role){
 
 // AUTH
 function initLogin(){
-  const form = document.getElementById('login-form');
-  form.addEventListener('submit', (e)=>{
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(form).entries());
-    state.user = { name: data.name.trim(), role: data.role };
-    save(); updateChrome(); navigate('home');
-  });
+  // Login simple (demo) por email/contraseña
+  const loginForm = document.getElementById('auth-login-form');
+  const openReg = document.getElementById('auth-open-register');
+  const regWrap = document.getElementById('auth-register');
+  const backLogin = document.getElementById('auth-back-login');
+  const regCompany = document.getElementById('register-company');
+  const regCarrier = document.getElementById('register-carrier');
+  const tabCompany = document.getElementById('reg-tab-company');
+  const tabCarrier = document.getElementById('reg-tab-carrier');
+  const cargasAll = document.getElementById('cargas-all');
+  const sendixDemo = document.getElementById('auth-sendix-demo');
+
+  if(loginForm){
+    loginForm.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(loginForm).entries());
+      const email = String(data.email||'').trim().toLowerCase();
+      const pass = String(data.password||'');
+      if(!email || pass.length<6){ alert('Completá email y contraseña válida (6+ caracteres).'); return; }
+      // Demo: determinar rol por sufijos para probar
+      const role = email.endsWith('+empresa@demo') ? 'empresa' : email.endsWith('+transp@demo') ? 'transportista' : email.endsWith('+sendix@demo') ? 'sendix' : 'empresa';
+      state.user = { name: email.split('@')[0], role, email };
+      save(); updateChrome(); navigate('home');
+    });
+  }
+  if(sendixDemo){
+    sendixDemo.onclick = ()=>{ state.user = { name:'Nexo SENDIX', role:'sendix', email:'sendix@demo' }; save(); updateChrome(); navigate('home'); };
+  }
+  if(openReg){ openReg.onclick = ()=>{ regWrap.style.display='grid'; if(regCompany) regCompany.style.display='grid'; if(regCarrier) regCarrier.style.display='none'; } }
+  if(backLogin){ backLogin.onclick = ()=>{ regWrap.style.display='none'; } }
+  if(tabCompany){ tabCompany.onclick = ()=>{ if(regCompany) regCompany.style.display='grid'; if(regCarrier) regCarrier.style.display='none'; } }
+  if(tabCarrier){ tabCarrier.onclick = ()=>{ if(regCompany) regCompany.style.display='none'; if(regCarrier) regCarrier.style.display='grid'; } }
+  if(cargasAll){
+    cargasAll.addEventListener('change', ()=>{
+      const boxes = regCarrier?.querySelectorAll('input[type="checkbox"][name="cargas"]');
+      boxes?.forEach(b=> b.checked = cargasAll.checked);
+    });
+  }
+  if(regCompany){
+    regCompany.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(regCompany).entries());
+      if(!data.terms){ alert('Debés aceptar los términos y condiciones.'); return; }
+      // Persistimos usuario empresa
+      state.user = { name: String(data.companyName||'Empresa'), role:'empresa', email: String(data.email||'') };
+      save(); updateChrome(); navigate('home');
+    });
+  }
+  if(regCarrier){
+    regCarrier.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const formData = new FormData(regCarrier);
+      const data = Object.fromEntries(formData.entries());
+      const cargas = Array.from(regCarrier.querySelectorAll('input[name="cargas"]:checked')).map(el=>el.value);
+      const vehiculos = Array.from(regCarrier.querySelectorAll('input[name="vehiculos"]:checked')).map(el=>el.value);
+      if(!data.terms){ alert('Debés aceptar los términos y condiciones.'); return; }
+      if(cargas.length===0){ alert('Seleccioná al menos un tipo de carga.'); return; }
+      if(vehiculos.length===0){ alert('Seleccioná al menos un tipo de vehículo.'); return; }
+      // Persistimos usuario transportista
+      const fullName = `${data.firstName||''} ${data.lastName||''}`.trim();
+      state.user = { name: fullName||'Transportista', role:'transportista', email: String(data.email||''), perfil:{ cargas, vehiculos } };
+      save(); updateChrome(); navigate('home');
+    });
+  }
 }
 function updateChrome(){
   const badge = document.getElementById('user-badge');
