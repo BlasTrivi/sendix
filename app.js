@@ -7,7 +7,7 @@
    - Cada función tiene responsabilidad única y renderiza su vista
    ===================================================================== */
 // Nexo + Chat 3 partes + Tracking global por envío (LocalStorage, flujo: SENDIX filtra -> Empresa selecciona)
-const routes = ['login','home','publicar','mis-cargas','ofertas','mis-postulaciones','mis-envios','moderacion','conversaciones','resumen','chat','tracking'];
+const routes = ['login','home','publicar','mis-cargas','ofertas','mis-postulaciones','mis-envios','moderacion','conversaciones','resumen','usuarios','perfil','chat','tracking'];
 const SHIP_STEPS = ['pendiente','en-carga','en-camino','entregado'];
 // Comisión SENDIX
 const COMM_RATE = 0.10; // 10%
@@ -23,6 +23,7 @@ function totalForCompany(price){
 
 const state = {
   user: JSON.parse(localStorage.getItem('sendix.user') || 'null'),
+  users: JSON.parse(localStorage.getItem('sendix.users') || '[]'),
   loads: JSON.parse(localStorage.getItem('sendix.loads') || '[]'),
   proposals: JSON.parse(localStorage.getItem('sendix.proposals') || '[]'), // {id, loadId, carrier, vehicle, price, status, shipStatus}
   messages: JSON.parse(localStorage.getItem('sendix.messages') || '[]'),   // {threadId, from, role, text, ts}
@@ -36,12 +37,23 @@ const state = {
 
 function save(){
   localStorage.setItem('sendix.user', JSON.stringify(state.user));
+  localStorage.setItem('sendix.users', JSON.stringify(state.users||[]));
   localStorage.setItem('sendix.reads', JSON.stringify(state.reads));
   localStorage.setItem('sendix.loads', JSON.stringify(state.loads));
   localStorage.setItem('sendix.proposals', JSON.stringify(state.proposals));
   localStorage.setItem('sendix.messages', JSON.stringify(state.messages));
   localStorage.setItem('sendix.step', state.trackingStep);
   localStorage.setItem('sendix.commissions', JSON.stringify(state.commissions||[]));
+}
+
+function upsertUser(u){
+  if(!u) return;
+  const email = (u.email||'').toLowerCase();
+  if(!email) return;
+  const idx = (state.users||[]).findIndex(x=> String(x.email||'').toLowerCase()===email);
+  if(idx>=0){ state.users[idx] = { ...state.users[idx], ...u }; }
+  else { state.users.unshift({ ...u, createdAt: u.createdAt || new Date().toISOString() }); }
+  save();
 }
 
 // Actualiza la variable CSS --bbar-h según la barra inferior visible
@@ -125,6 +137,8 @@ function navigate(route){
   if(route==='moderacion'){ try{ requireRole('sendix'); renderInbox(); }catch(e){} }
   if(route==='conversaciones'){ renderThreads(); renderChat(); }
   if(route==='resumen'){ try{ requireRole('sendix'); renderMetrics(); }catch(e){} }
+  if(route==='usuarios'){ try{ requireRole('sendix'); renderUsers(); }catch(e){} }
+  if(route==='perfil'){ renderProfile(); }
   if(route==='tracking') renderTracking();
   if(route==='conversaciones') reflectMobileChatState(); else document.body.classList.remove('chat-has-active');
   // Asegurar que el indicador de escritura no quede visible fuera del chat
@@ -233,7 +247,8 @@ function initLogin(){
       const data = Object.fromEntries(new FormData(regCompany).entries());
       if(!data.terms){ alert('Debés aceptar los términos y condiciones.'); return; }
       // Persistimos usuario empresa
-      state.user = { name: String(data.companyName||'Empresa'), role:'empresa', email: String(data.email||'') };
+      state.user = { name: String(data.companyName||'Empresa'), role:'empresa', email: String(data.email||''), phone: String(data.phone||''), taxId: String(data.taxId||'') };
+      upsertUser(state.user);
       save(); updateChrome(); navigate('home');
     });
   }
@@ -249,7 +264,13 @@ function initLogin(){
       if(vehiculos.length===0){ alert('Seleccioná al menos un tipo de vehículo.'); return; }
       // Persistimos usuario transportista
       const fullName = `${data.firstName||''} ${data.lastName||''}`.trim();
-      state.user = { name: fullName||'Transportista', role:'transportista', email: String(data.email||''), perfil:{ cargas, vehiculos, alcance: String(data.alcance||'') } };
+      state.user = { name: fullName||'Transportista', role:'transportista', email: String(data.email||''), perfil:{
+        cargas, vehiculos, alcance: String(data.alcance||''),
+        dni: String(data.dni||''), seguroOk: !!regCarrier.querySelector('input[name="seguroOk"]')?.checked,
+        tipoSeguro: String(data.tipoSeguro||''), senasa: !!regCarrier.querySelector('input[name="senasa"]')?.checked,
+        imo: !!regCarrier.querySelector('input[name="imo"]')?.checked,
+      } };
+      upsertUser(state.user);
       save(); updateChrome(); navigate('home');
     });
   }
@@ -257,14 +278,139 @@ function initLogin(){
 function updateChrome(){
   const badge = document.getElementById('user-badge');
   if(state.user){
-    badge.innerHTML = `<span class="badge">${state.user.name} · ${state.user.role}</span> <button class="btn btn-ghost" id="logout">Salir</button>`;
+    const initials = (state.user.name||'?').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase();
+    badge.innerHTML = `
+      <button class="btn btn-ghost" id="open-profile" title="Perfil" style="display:inline-flex; align-items:center; gap:8px">
+        <span class="avatar" style="width:28px;height:28px;font-size:12px">${initials||'?'}</span>
+        <span class="muted">${state.user.name} · ${state.user.role}</span>
+      </button>
+      <button class="btn btn-ghost" id="logout">Salir</button>`;
   } else badge.textContent='';
   document.getElementById('logout')?.addEventListener('click', ()=>{ state.user=null; save(); updateChrome(); navigate('login'); });
+  document.getElementById('open-profile')?.addEventListener('click', ()=> navigate('perfil'));
   document.getElementById('nav-empresa').classList.toggle('visible', state.user?.role==='empresa');
   document.getElementById('nav-transportista').classList.toggle('visible', state.user?.role==='transportista');
   document.getElementById('nav-sendix').classList.toggle('visible', state.user?.role==='sendix');
   // Recalcular altura de la barra inferior cuando cambie la visibilidad por rol
   updateBottomBarHeight();
+}
+
+// PERFIL propio o de terceros (solo SENDIX)
+function renderProfile(emailToView){
+  const isSendix = state.user?.role==='sendix';
+  const container = document.getElementById('profile-view');
+  const title = document.getElementById('profile-title');
+  const back = document.getElementById('profile-back');
+  const saveBtn = document.getElementById('profile-save');
+  const form = document.getElementById('profile-form');
+  if(!container || !form) return;
+  // Target: propio por defecto; si SENDIX pasó email, ver de terceros (read-only)
+  const email = (emailToView || form.dataset.viewEmail || state.user?.email || '').toLowerCase();
+  const viewingOther = isSendix && email && email !== String(state.user?.email||'').toLowerCase();
+  // Encontrar fuente
+  const me = viewingOther ? (state.users||[]).find(u=> String(u.email||'').toLowerCase()===email) : state.user;
+  if(!me){ container.innerHTML = '<div class="muted">Perfil no encontrado.</div>'; return; }
+  title.textContent = viewingOther ? `Perfil de ${me.name||me.email||'Usuario'}` : 'Mi perfil';
+  if(back) back.onclick = ()=>{ if(viewingOther) navigate('usuarios'); else navigate('home'); };
+  // Renderizar campos según rol
+  const role = me.role||'empresa';
+  function inputRow(label, name, value='', type='text', attrs=''){
+    const dis = viewingOther ? 'disabled' : '';
+    return `<label>${label}<input ${dis} type="${type}" name="${name}" value="${escapeHtml(value||'')}" ${attrs}/></label>`;
+  }
+  function checkboxRow(label, name, checked){
+    const dis = viewingOther ? 'disabled' : '';
+    return `<label class="radio"><input ${dis} type="checkbox" name="${name}" ${checked?'checked':''}/> ${label}</label>`;
+  }
+  function chips(name, options, selected){
+    const dis = viewingOther ? 'disabled' : '';
+    return `<fieldset class="roles"><legend>${escapeHtml(name)}</legend>`+
+      options.map(opt=>`<label class="radio"><input ${dis} type="checkbox" name="opt-${name}" value="${opt}" ${selected?.includes(opt)?'checked':''}/> ${opt}</label>`).join('')+
+      `</fieldset>`;
+  }
+  // Estructura de formulario
+  let html = '';
+  if(role==='empresa'){
+    html += inputRow('Nombre/Empresa','companyName', me.companyName||me.name||'');
+    html += inputRow('Email','email', me.email||'', 'email');
+    html += inputRow('Teléfono','phone', me.phone||'');
+    html += inputRow('DNI/CUIL/CUIT','taxId', me.taxId||'');
+  } else if(role==='transportista'){
+    const perfil = me.perfil||{};
+    const [firstName='', ...rest] = (me.name||'').split(' ');
+    const lastName = perfil.lastName || rest.join(' ');
+    html += `<div class="row" style="gap:8px">`+
+            `<label style="flex:1">Nombre<input ${(viewingOther?'disabled':'')} name="firstName" value="${escapeHtml(perfil.firstName||firstName)}"/></label>`+
+            `<label style="flex:1">Apellido<input ${(viewingOther?'disabled':'')} name="lastName" value="${escapeHtml(lastName)}"/></label>`+
+            `</div>`;
+    html += inputRow('Email','email', me.email||'', 'email');
+    html += inputRow('DNI','dni', perfil.dni||'');
+    html += chips('Tipo de carga', ['Contenedor','Granel','Carga general','Flete'], perfil.cargas||[]);
+    html += chips('Tipo de vehículo', ['Liviana','Mediana','Pesada'], perfil.vehiculos||[]);
+    html += checkboxRow('Seguro al día','seguroOk', !!perfil.seguroOk);
+    html += inputRow('Tipo de seguro','tipoSeguro', perfil.tipoSeguro||'');
+    html += checkboxRow('Habilitación SENASA','senasa', !!perfil.senasa);
+    html += checkboxRow('Realiza carga IMO','imo', !!perfil.imo);
+    html += inputRow('Alcance del transporte','alcance', perfil.alcance||'');
+  } else {
+    html += inputRow('Nombre','name', me.name||'');
+    html += inputRow('Email','email', me.email||'', 'email');
+  }
+  form.innerHTML = html;
+  if(saveBtn) saveBtn.style.display = viewingOther ? 'none' : 'inline-flex';
+
+  // Guardado
+  if(!viewingOther && saveBtn){
+    saveBtn.onclick = ()=>{
+      const data = Object.fromEntries(new FormData(form).entries());
+      if(role==='empresa'){
+        state.user = { ...state.user, name: data.companyName||state.user.name, companyName: data.companyName||'', email: data.email||state.user.email, phone: data.phone||'', taxId: data.taxId||'' };
+      } else if(role==='transportista'){
+        const cargas = Array.from(form.querySelectorAll('input[name="opt-Tipo de carga"]:checked')).map(el=>el.value);
+        const vehiculos = Array.from(form.querySelectorAll('input[name="opt-Tipo de vehículo"]:checked')).map(el=>el.value);
+        const perfil = {
+          ...(state.user.perfil||{}),
+          firstName: data.firstName||'',
+          lastName: data.lastName||'',
+          dni: data.dni||'',
+          cargas, vehiculos,
+          seguroOk: !!form.querySelector('input[name="seguroOk"]')?.checked,
+          tipoSeguro: data.tipoSeguro||'',
+          senasa: !!form.querySelector('input[name="senasa"]')?.checked,
+          imo: !!form.querySelector('input[name="imo"]')?.checked,
+          alcance: data.alcance||''
+        };
+        const fullName = `${perfil.firstName} ${perfil.lastName}`.trim() || state.user.name;
+        state.user = { ...state.user, name: fullName, email: data.email||state.user.email, perfil };
+      } else {
+        state.user = { ...state.user, name: data.name||state.user.name, email: data.email||state.user.email };
+      }
+      upsertUser(state.user);
+      save(); updateChrome(); alert('Perfil actualizado');
+    };
+  }
+}
+
+// Vista de usuarios (solo SENDIX)
+function renderUsers(){
+  const ul = document.getElementById('users-list');
+  const detail = document.getElementById('users-empty');
+  if(!ul) return;
+  const users = (state.users||[]).slice().sort((a,b)=> (a.role||'').localeCompare(b.role||'') || (a.name||'').localeCompare(b.name||''));
+  ul.innerHTML = users.length ? users.map(u=>{
+    const initials = (u.name||'?').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase();
+    return `<li class="row">
+      <div class="row" style="gap:8px; align-items:center">
+        <span class="avatar" style="width:28px;height:28px;font-size:12px">${initials}</span>
+        <div><strong>${escapeHtml(u.name||u.email||'')}</strong><div class="muted">${escapeHtml(u.role||'')}</div></div>
+      </div>
+      <div class="row" style="gap:8px">
+        <button class="btn" data-view-user="${escapeHtml(u.email||'')}">Ver</button>
+      </div>
+    </li>`;
+  }).join('') : '<li class="muted">Aún no hay usuarios registrados.</li>';
+  ul.querySelectorAll('[data-view-user]')?.forEach(b=> b.onclick = ()=>{ const email=b.dataset.viewUser; document.getElementById('profile-form')?.setAttribute('data-view-email', email); navigate('perfil'); renderProfile(email); });
+  if(detail) detail.style.display = users.length? 'none':'block';
 }
 
 // EMPRESA

@@ -224,6 +224,11 @@
             <p class="card-desc">Indicadores y métricas generales (demo).</p>
             <button class="btn btn-ghost" data-nav="resumen">Ver</button>
           </div>
+          <div class="card" data-nav="usuarios">
+            <h3>Usuarios</h3>
+            <p class="card-desc">Listado y perfiles (solo SENDIX).</p>
+            <button class="btn btn-ghost" data-nav="usuarios">Abrir</button>
+          </div>
         </div>
       </section>
 
@@ -414,6 +419,25 @@
             <ul id="carrier-commissions-detail" class="list"></ul>
           </div>
         </div>
+      </section>
+
+      <!-- Vista: Usuarios (solo SENDIX) -->
+      <section data-route="usuarios" class="view">
+        <h2 class="section-title">Usuarios <span class="badge">admin</span></h2>
+        <ul id="users-list" class="list"></ul>
+        <div id="users-empty" class="muted">Aún no hay usuarios. Al registrarse, aparecerán acá.</div>
+      </section>
+
+      <!-- Vista: Perfil (propio o de terceros) -->
+      <section data-route="perfil" class="view">
+        <div class="row" style="align-items:center; gap:8px">
+          <button class="btn btn-ghost" id="profile-back" title="Volver">←</button>
+          <h2 id="profile-title" class="section-title" style="margin:0">Mi perfil</h2>
+          <div style="margin-left:auto">
+            <button class="btn" id="profile-save">Guardar cambios</button>
+          </div>
+        </div>
+        <form id="profile-form" class="form small" data-view-email=""></form>
       </section>
 
       <section data-route="tracking" class="view">
