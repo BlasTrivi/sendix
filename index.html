@@ -135,20 +135,53 @@
           <h2 class="publish-title">Publicar nueva carga</h2>
           <form id="publish-form" class="form publish-form" autocomplete="off">
             <label><span>📍</span> Origen
-              <input name="origen" id="input-origen" placeholder="Origen" required autocomplete="off" />
+              <input name="origen" id="input-origen" placeholder="Ciudad, Provincia/Estado, País" required autocomplete="off" />
             </label>
             <label><span>🎯</span> Destino
-              <input name="destino" id="input-destino" placeholder="Destino" required autocomplete="off" />
+              <input name="destino" id="input-destino" placeholder="Ciudad, Provincia/Estado, País" required autocomplete="off" />
             </label>
-            <label><span>📦</span> Tipo
-              <input name="tipo" placeholder="Palets, a granel..." required/>
+            <label><span>📦</span> Tipo de carga
+              <select name="tipo" required>
+                <option value="Contenedor">Contenedor</option>
+                <option value="Granel">Granel</option>
+                <option value="Carga general">Carga General</option>
+                <option value="Flete">Flete</option>
+              </select>
             </label>
-            <label><span>📏</span> Tamaño
-              <input name="tamano" placeholder="Ej: 10 pallets / 20 m³ / 8 tn" required/>
+            <div class="row" style="gap:8px">
+              <label style="flex:1"><span>🔢</span> Cantidad
+                <input name="cantidad" type="number" min="0" step="1" placeholder="Ej: 10" />
+              </label>
+              <label style="flex:1"><span>📦</span> Unidad
+                <select name="unidad">
+                  <option value="palets">Palets</option>
+                  <option value="bultos">Bultos</option>
+                </select>
+              </label>
+            </div>
+            <label><span>�</span> Dimensiones
+              <input name="dimensiones" placeholder="Ej: 120 x 80 x 150 cm (largo x ancho x alto)" />
             </label>
-            <label><span>📅</span> Fecha
-              <input type="date" name="fecha" required/>
+            <div class="row" style="gap:8px">
+              <label style="flex:1"><span>⚖️</span> Peso total (kg)
+                <input name="peso" type="number" step="0.01" min="0" placeholder="Ej: 800" />
+              </label>
+              <label style="flex:1"><span>🧪</span> Volumen (m³)
+                <input name="volumen" type="number" step="0.01" min="0" placeholder="Ej: 20" />
+              </label>
+            </div>
+            <label><span>📅</span> Fecha y hora
+              <input type="datetime-local" name="fechaHora" required/>
             </label>
+            <label><span>📝</span> Descripción / Comentarios
+              <textarea name="descripcion" rows="3" placeholder="Detalles de la carga, requerimientos, observaciones…"></textarea>
+            </label>
+            <div>
+              <label class="file-label"><span>📎</span> Adjuntar archivos
+                <input type="file" id="publish-files" name="adjuntos" multiple accept="image/*,application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+              </label>
+              <div id="file-previews" class="file-previews" style="display:none"></div>
+            </div>
             <div id="publish-preview" class="publish-preview"></div>
             <button class="btn btn-primary publish-btn" type="submit">Publicar carga</button>
           </form>

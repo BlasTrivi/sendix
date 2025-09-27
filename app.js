@@ -184,7 +184,8 @@ function renderLoads(onlyMine=false){
   ul.innerHTML = data.length ? data.map(l=>`
     <li>
       <div class="row"><strong>${l.origen} ➜ ${l.destino}</strong><span>${new Date(l.createdAt).toLocaleDateString()}</span></div>
-      <div class="muted">Tipo: ${l.tipo} · Tamaño: ${l.tamano||'-'} · Fecha: ${l.fecha} · Por: ${l.owner}</div>
+      <div class="muted">Tipo: ${l.tipo} · Cant.: ${l.cantidad? `${l.cantidad} ${l.unidad||''}`:'-'} · Dim.: ${l.dimensiones||'-'} · Peso: ${l.peso? l.peso+' kg':'-'} · Vol: ${l.volumen? l.volumen+' m³':'-'} · Fecha: ${l.fechaHora? new Date(l.fechaHora).toLocaleString(): (l.fecha||'-')} · Por: ${l.owner}</div>
+      ${Array.isArray(l.adjuntos)&&l.adjuntos.length? `<div class="attachments small">${l.adjuntos.slice(0,3).map(a=> a.type?.startsWith('image/')? `<img src="${a.preview||''}" alt="adjunto"/>` : `<span class="file-chip">${a.name||'archivo'}</span>`).join('')}${l.adjuntos.length>3? `<span class="muted">+${l.adjuntos.length-3} más</span>`:''}</div>`:''}
       <div class="row"><button class="btn btn-ghost" data-view="${l.id}">Ver propuestas</button></div>
     </li>`).join('') : '<li class="muted">No hay cargas.</li>';
   ul.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click', ()=>{ navigate('mis-cargas'); renderMyLoadsWithProposals(b.dataset.view); }));
@@ -192,17 +193,24 @@ function renderLoads(onlyMine=false){
 function initPublishForm(){
   const form = document.getElementById('publish-form');
   const preview = document.getElementById('publish-preview');
+  const fileInput = document.getElementById('publish-files');
+  const filePreviews = document.getElementById('file-previews');
+  let pendingFiles = [];
   function updatePreview() {
     const data = Object.fromEntries(new FormData(form).entries());
-    if(data.origen || data.destino || data.tipo || data.tamano || data.fecha) {
+    if(data.origen || data.destino || data.tipo || data.cantidad || data.fechaHora || data.descripcion || pendingFiles.length) {
       preview.style.display = 'block';
       preview.innerHTML = `
         <strong>Resumen de carga:</strong><br>
-        <span>📍 <b>Origen:</b> ${data.origen||'-'}</span><br>
-        <span>🎯 <b>Destino:</b> ${data.destino||'-'}</span><br>
-        <span>📦 <b>Tipo:</b> ${data.tipo||'-'}</span><br>
-        <span>📏 <b>Tamaño:</b> ${data.tamano||'-'}</span><br>
-        <span>📅 <b>Fecha:</b> ${data.fecha||'-'}</span>
+        <span>📍 <b>Origen:</b> ${escapeHtml(data.origen||'-')}</span><br>
+        <span>🎯 <b>Destino:</b> ${escapeHtml(data.destino||'-')}</span><br>
+        <span>📦 <b>Tipo:</b> ${escapeHtml(data.tipo||'-')}</span><br>
+        <span>� <b>Cantidad:</b> ${escapeHtml(data.cantidad||'-')} ${escapeHtml(data.unidad||'')}</span><br>
+        <span>📐 <b>Dimensiones:</b> ${escapeHtml(data.dimensiones||'-')}</span><br>
+        <span>⚖️ <b>Peso:</b> ${escapeHtml(data.peso||'-')} kg · 🧪 <b>Volumen:</b> ${escapeHtml(data.volumen||'-')} m³</span><br>
+        <span>📅 <b>Fecha y hora:</b> ${data.fechaHora? new Date(data.fechaHora).toLocaleString() : '-'}</span><br>
+        <span>📝 <b>Comentarios:</b> ${escapeHtml(data.descripcion||'-')}</span><br>
+        ${pendingFiles.length? `<div class="attachments">${pendingFiles.slice(0,4).map(a=> a.type?.startsWith('image/')? `<img src="${a.preview}" alt="adjunto"/>`:`<span class="file-chip">${escapeHtml(a.name)}</span>`).join('')} ${pendingFiles.length>4? `<span class="muted">+${pendingFiles.length-4} más</span>`:''}</div>`:''}
       `;
     } else {
       preview.style.display = 'none';
@@ -210,13 +218,75 @@ function initPublishForm(){
     }
   }
   form.addEventListener('input', updatePreview);
+  if(fileInput){
+    fileInput.addEventListener('change', ()=>{
+      const files = Array.from(fileInput.files||[]);
+      pendingFiles = [];
+      let pendingReads = 0;
+      function maybeDone(){
+        if(pendingReads>0) return;
+        // Render previews
+        if(filePreviews){
+          filePreviews.innerHTML = '';
+          pendingFiles.forEach(a=>{
+            if(a.type.startsWith('image/') && a.preview){
+              const img = document.createElement('img');
+              img.src = a.preview; img.alt = a.name; img.loading = 'lazy';
+              filePreviews.appendChild(img);
+            } else {
+              const span = document.createElement('span');
+              span.className = 'file-chip';
+              span.textContent = a.name;
+              filePreviews.appendChild(span);
+            }
+          });
+          filePreviews.style.display = pendingFiles.length? 'flex':'none';
+        }
+        updatePreview();
+      }
+      files.forEach(f=>{
+        const item = { name: f.name, type: f.type||'', size: f.size||0 };
+        if(f.type && f.type.startsWith('image/')){
+          pendingReads++;
+          const reader = new FileReader();
+          reader.onload = (ev)=>{
+            item.preview = String(ev.target?.result||'');
+            pendingFiles.push(item);
+            pendingReads--; maybeDone();
+          };
+          reader.onerror = ()=>{ pendingReads--; pendingFiles.push(item); maybeDone(); };
+          reader.readAsDataURL(f);
+        } else {
+          pendingFiles.push(item);
+        }
+      });
+      maybeDone();
+    });
+  }
   form.addEventListener('submit', (e)=>{
     e.preventDefault();
     if(state.user?.role!=='empresa'){ alert('Ingresá como Empresa.'); return; }
     const data = Object.fromEntries(new FormData(form).entries());
-    addLoad(data);
+    // Normalizar y guardar nuevos campos
+    const load = {
+      origen: (data.origen||'').trim(),
+      destino: (data.destino||'').trim(),
+      tipo: data.tipo||'',
+      cantidad: data.cantidad? Number(data.cantidad) : null,
+      unidad: data.unidad||'',
+      dimensiones: (data.dimensiones||'').trim(),
+      peso: data.peso? Number(data.peso) : null,
+      volumen: data.volumen? Number(data.volumen) : null,
+      fechaHora: data.fechaHora || null,
+      descripcion: (data.descripcion||'').trim(),
+      adjuntos: pendingFiles
+    };
+    addLoad(load);
     form.reset();
     updatePreview();
+    // limpiar previews
+    pendingFiles = [];
+    if(filePreviews){ filePreviews.innerHTML=''; filePreviews.style.display='none'; }
     alert('¡Publicada! Esperá postulaciones que Sendix moderará.');
     navigate('mis-cargas');
   });
@@ -270,7 +340,9 @@ function renderMyLoadsWithProposals(focus){
     }).join('') : (showFiltered ? '<li class="muted">Sin propuestas filtradas por SENDIX aún.</li>' : '');
     return `<li id="load-${l.id}">
       <div class="row"><strong>${l.origen} ➜ ${l.destino}</strong><span>${new Date(l.createdAt).toLocaleDateString()}</span></div>
-      <div class="muted">Tipo: ${l.tipo} · Tamaño: ${l.tamano||'-'} · Fecha: ${l.fecha}</div>
+      <div class="muted">Tipo: ${l.tipo} · Cant.: ${l.cantidad? `${l.cantidad} ${l.unidad||''}`:'-'} · Dim.: ${l.dimensiones||'-'} · Peso: ${l.peso? l.peso+' kg':'-'} · Vol: ${l.volumen? l.volumen+' m³':'-'} · Fecha: ${l.fechaHora? new Date(l.fechaHora).toLocaleString(): (l.fecha||'-')}</div>
+      ${l.descripcion? `<div class="muted">📝 ${escapeHtml(l.descripcion)}</div>`:''}
+      ${Array.isArray(l.adjuntos)&&l.adjuntos.length? `<div class="attachments small">${l.adjuntos.slice(0,4).map(a=> a.type?.startsWith('image/')? `<img src="${a.preview||''}" alt="adjunto"/>` : `<span class="file-chip">${a.name||'archivo'}</span>`).join('')}${l.adjuntos.length>4? `<span class="muted">+${l.adjuntos.length-4} más</span>`:''}</div>`:''}
       ${approvedBlock ? `<div class="mt"><strong>Envío seleccionado</strong></div>${approvedBlock}` : ''}
       ${showFiltered ? `<div class="mt"><strong>Propuestas filtradas por SENDIX</strong></div>
       <ul class="list">${filteredBlock}</ul>` : ''}
@@ -319,7 +391,9 @@ function renderOffers(){
             <strong>${l.origen} ➜ ${l.destino}</strong>
             <span>${new Date(l.createdAt).toLocaleDateString()}</span>
           </div>
-          <div class="muted">Tipo: ${l.tipo} · Tamaño: ${l.tamano||'-'} · Fecha: ${l.fecha} · Empresa: ${l.owner}</div>
+          <div class="muted">Tipo: ${l.tipo} · Cant.: ${l.cantidad? `${l.cantidad} ${l.unidad||''}`:'-'} · Dim.: ${l.dimensiones||'-'} · Peso: ${l.peso? l.peso+' kg':'-'} · Vol: ${l.volumen? l.volumen+' m³':'-'} · Fecha: ${l.fechaHora? new Date(l.fechaHora).toLocaleString(): (l.fecha||'-')} · Empresa: ${l.owner}</div>
+          ${l.descripcion? `<div class="muted">📝 ${escapeHtml(l.descripcion)}</div>`:''}
+          ${Array.isArray(l.adjuntos)&&l.adjuntos.length? `<div class="attachments small">${l.adjuntos.slice(0,3).map(a=> a.type?.startsWith('image/')? `<img src="${a.preview||''}" alt="adjunto"/>` : `<span class="file-chip">${a.name||'archivo'}</span>`).join('')}${l.adjuntos.length>3? `<span class="muted">+${l.adjuntos.length-3} más</span>`:''}</div>`:''}
           ${formHtml}
         </li>`;
       }).join('')
@@ -351,7 +425,7 @@ function renderMyProposals(){
     return `<li class="row">
       <div>
         <div><strong>${l?.origen} ➜ ${l?.destino}</strong></div>
-        <div class="muted">Para: ${l?.owner} · ${l?.tipo} · Tamaño: ${l?.tamano||'-'} · ${l?.fecha}</div>
+        <div class="muted">Para: ${l?.owner} · ${l?.tipo} · Cant.: ${l?.cantidad? `${l?.cantidad} ${l?.unidad||''}`:'-'} · Dim.: ${l?.dimensiones||'-'} · Peso: ${l?.peso? l?.peso+' kg':'-'} · Vol: ${l?.volumen? l?.volumen+' m³':'-'} · Fecha: ${l?.fechaHora? new Date(l?.fechaHora).toLocaleString(): (l?.fecha||'-')}</div>
       </div>
       <div class="row">
         <span class="badge">${badge}</span>
@@ -374,7 +448,7 @@ function renderShipments(){
         <strong>${l?.origen} ➜ ${l?.destino}</strong>
         <span class="badge">${p.shipStatus||'pendiente'}</span>
       </div>
-      <div class="muted">Cliente: ${l?.owner} · ${l?.tipo} · Tamaño: ${l?.tamano||'-'} · ${l?.fecha} · Precio: $${p.price.toLocaleString('es-AR')}</div>
+      <div class="muted">Cliente: ${l?.owner} · ${l?.tipo} · Cant.: ${l?.cantidad? `${l?.cantidad} ${l?.unidad||''}`:'-'} · Dim.: ${l?.dimensiones||'-'} · Peso: ${l?.peso? l?.peso+' kg':'-'} · Vol: ${l?.volumen? l?.volumen+' m³':'-'} · Fecha: ${l?.fechaHora? new Date(l?.fechaHora).toLocaleString(): (l?.fecha||'-')} · Precio: $${p.price.toLocaleString('es-AR')}</div>
       <div class="row">
         <select data-ship="${p.id}">
           ${SHIP_STEPS.map(s=>`<option value="${s}" ${s===(p.shipStatus||'pendiente')?'selected':''}>${s}</option>`).join('')}
@@ -417,7 +491,7 @@ function renderInbox(){
     const l = state.loads.find(x=>x.id===p.loadId);
     return `<li>
       <div class="row"><strong>${p.carrier}</strong> <span class="muted">(${p.vehicle})</span> <strong>$${p.price.toLocaleString('es-AR')}</strong></div>
-      <div class="muted">Carga: ${l?.origen} ➜ ${l?.destino} · ${l?.tipo} · Tamaño: ${l?.tamano||'-'} · ${l?.fecha} · Empresa: ${l?.owner}</div>
+      <div class="muted">Carga: ${l?.origen} ➜ ${l?.destino} · ${l?.tipo} · Cant.: ${l?.cantidad? `${l?.cantidad} ${l?.unidad||''}`:'-'} · Dim.: ${l?.dimensiones||'-'} · Peso: ${l?.peso? l?.peso+' kg':'-'} · Vol: ${l?.volumen? l?.volumen+' m³':'-'} · Fecha: ${l?.fechaHora? new Date(l?.fechaHora).toLocaleString(): (l?.fecha||'-')} · Empresa: ${l?.owner}</div>
       <div class="actions">
         <button class="btn btn-primary" data-filter="${p.id}">Filtrar</button>
         <button class="btn" data-reject="${p.id}">Rechazar</button>
@@ -428,7 +502,7 @@ function renderInbox(){
     const l = state.loads.find(x=>x.id===p.loadId);
     return `<li>
       <div class="row"><strong>${p.carrier}</strong> <span class="muted">(${p.vehicle})</span> <strong>$${p.price.toLocaleString('es-AR')}</strong></div>
-      <div class="muted">Carga: ${l?.origen} ➜ ${l?.destino} · ${l?.tipo} · Tamaño: ${l?.tamano||'-'} · ${l?.fecha} · Empresa: ${l?.owner}</div>
+      <div class="muted">Carga: ${l?.origen} ➜ ${l?.destino} · ${l?.tipo} · Cant.: ${l?.cantidad? `${l?.cantidad} ${l?.unidad||''}`:'-'} · Dim.: ${l?.dimensiones||'-'} · Peso: ${l?.peso? l?.peso+' kg':'-'} · Vol: ${l?.volumen? l?.volumen+' m³':'-'} · Fecha: ${l?.fechaHora? new Date(l?.fechaHora).toLocaleString(): (l?.fecha||'-')} · Empresa: ${l?.owner}</div>
       <div class="actions">
         <span class="badge">Filtrada</span>
         <button class="btn" data-unfilter="${p.id}">Quitar filtro</button>
@@ -468,7 +542,7 @@ function renderThreads(){
   const items = myThreads.map(p=>{
     const l = state.loads.find(x=>x.id===p.loadId);
     const title = `${l?.origen} → ${l?.destino}`;
-    const sub = `Emp: ${l?.owner} · Transp: ${p.carrier} · Tam: ${l?.tamano||'-'}`;
+    const sub = `Emp: ${l?.owner} · Transp: ${p.carrier} · Dim: ${l?.dimensiones||'-'}`;
     const unread = computeUnread(threadIdFor(p));
     const match = (title+' '+sub).toLowerCase().includes(q);
     const tId = threadIdFor(p);
@@ -570,7 +644,7 @@ function renderChat(){
   if(!p){ box.innerHTML='<div class="muted">Conversación no disponible.</div>'; return; }
   const l = state.loads.find(x=>x.id===p.loadId);
   title.textContent = `${l.origen} → ${l.destino}`;
-  topic.textContent = `Empresa: ${l.owner} · Transportista: ${p.carrier} · Tamaño: ${l.tamano||'-'} · Nexo: SENDIX`;
+  topic.textContent = `Empresa: ${l.owner} · Transportista: ${p.carrier} · Dimensiones: ${l.dimensiones||'-'} · Nexo: SENDIX`;
   const msgs = state.messages.filter(m=>m.threadId===state.activeThread).sort((a,b)=>a.ts-b.ts);
   box.innerHTML = msgs.map(m=>{
     const reply = m.replyTo ? msgs.find(x=>x.ts===m.replyTo) : null;
@@ -776,7 +850,7 @@ function renderTracking(){
         <span class="chip ${chipClass}">${p.shipStatus||'pendiente'}</span>
       </div>
       <div class="row subtitle">
-        <div>Emp: ${l?.owner} · Transp: ${p.carrier} · Tam: ${l?.tamano||'-'}</div>
+  <div>Emp: ${l?.owner} · Transp: ${p.carrier} · Dim: ${l?.dimensiones||'-'}</div>
         <div class="row" style="gap:8px">
           <button class="btn" data-select="${p.id}">Ver</button>
           <button class="btn" data-chat="${p.id}">Chat ${unread?`<span class='badge-pill'>${unread}</span>`:''}</button>
