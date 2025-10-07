@@ -496,13 +496,27 @@ function addLoad(load){
   state.loads.unshift({ ...load, id, owner: state.user.name, createdAt: new Date().toISOString() });
   save();
 }
+// Resumen compacto según categoría de nueva estructura
+function renderLoadSummary(l){
+  if(!l) return '';
+  const f = (d)=> d? new Date(d).toLocaleDateString() : '-';
+  if(l.categoria==='contenedor'){
+    return `Contenedor ${escapeHtml(l.containerType||'-')} · Cant.: ${l.cantidad||'-'} · Fecha: ${f(l.fechaHora)}`;
+  } else if(l.categoria==='granel'){
+    return `Granel ${escapeHtml(l.grainType||'-')} · Prod.: ${escapeHtml(l.product||'-')} · Cant.: ${l.cantidad||'-'} ${escapeHtml(l.unidad||'')} · Carga: ${f(l.fechaHora)}`;
+  } else if(l.categoria==='general'){
+    return `Carga general · Prod.: ${escapeHtml(l.product||'-')} · Pres.: ${escapeHtml(l.presentation||'-')} · Cant.: ${l.cantidad||'-'} ${escapeHtml(l.unidad||'')} · Carga: ${f(l.fechaHora)}`;
+  }
+  // Legacy
+  return `Tipo: ${escapeHtml(l.tipo||'-')} · Cant.: ${l.cantidad||'-'} ${escapeHtml(l.unidad||'')} · Fecha: ${f(l.fechaHora)}`;
+}
 function renderLoads(onlyMine=false){
   const ul = document.getElementById('loads-list');
   const data = onlyMine ? state.loads.filter(l=>l.owner===state.user?.name) : state.loads;
   ul.innerHTML = data.length ? data.map(l=>`
     <li>
       <div class="row"><strong>${l.origen} ➜ ${l.destino}</strong><span>${new Date(l.createdAt).toLocaleDateString()}</span></div>
-      <div class="muted">Tipo: ${l.tipo} · Cant.: ${l.cantidad? `${l.cantidad} ${l.unidad||''}`:'-'} · Dim.: ${l.dimensiones||'-'} · Peso: ${l.peso? l.peso+' kg':'-'} · Vol: ${l.volumen? l.volumen+' m³':'-'} · Fecha: ${l.fechaHora? new Date(l.fechaHora).toLocaleString(): (l.fecha||'-')} · Por: ${l.owner}</div>
+      <div class="muted">${renderLoadSummary(l)} · Por: ${l.owner}</div>
       ${Array.isArray(l.adjuntos)&&l.adjuntos.length? `<div class="attachments small">${l.adjuntos.slice(0,3).map(a=> a.type?.startsWith('image/')? `<img src="${a.preview||''}" alt="adjunto"/>` : `<span class="file-chip">${a.name||'archivo'}</span>`).join('')}${l.adjuntos.length>3? `<span class="muted">+${l.adjuntos.length-3} más</span>`:''}</div>`:''}
       <div class="row"><button class="btn btn-ghost" data-view="${l.id}">Ver propuestas</button></div>
     </li>`).join('') : '<li class="muted">No hay cargas.</li>';
@@ -515,29 +529,60 @@ function initPublishForm(){
   const filePreviews = document.getElementById('file-previews');
   const fileDrop = document.getElementById('file-drop');
   const btnSelectFiles = document.getElementById('btn-select-files');
+  const hiddenCat = document.getElementById('publish-categoria');
+  const catTabs = form?.querySelectorAll('.cat-tab');
   let pendingFiles = [];
-  function updatePreview() {
-    const data = Object.fromEntries(new FormData(form).entries());
-    if(data.origen || data.destino || data.tipo || data.cantidad || data.fechaHora || data.descripcion || pendingFiles.length) {
-      preview.style.display = 'block';
-      preview.innerHTML = `
-        <strong>Resumen de carga:</strong><br>
-        <span>📍 <b>Origen:</b> ${escapeHtml(data.origen||'-')}</span><br>
-        <span>🎯 <b>Destino:</b> ${escapeHtml(data.destino||'-')}</span><br>
-        <span>📦 <b>Tipo:</b> ${escapeHtml(data.tipo||'-')}</span><br>
-        <span>🔢 <b>Cantidad:</b> ${escapeHtml(data.cantidad||'-')} ${escapeHtml(data.unidad||'')}</span><br>
-        <span>📐 <b>Dimensiones:</b> ${escapeHtml(data.dimensiones||'-')}</span><br>
-        <span>⚖️ <b>Peso:</b> ${escapeHtml(data.peso||'-')} kg · 🧪 <b>Volumen:</b> ${escapeHtml(data.volumen||'-')} m³</span><br>
-        <span>📅 <b>Fecha y hora:</b> ${data.fechaHora? new Date(data.fechaHora).toLocaleString() : '-'}</span><br>
-        <span>📝 <b>Comentarios:</b> ${escapeHtml(data.descripcion||'-')}</span><br>
-        ${pendingFiles.length? `<div class="attachments">${pendingFiles.slice(0,4).map(a=> a.type?.startsWith('image/')? `<img src="${a.preview}" alt="adjunto"/>`:`<span class="file-chip">${escapeHtml(a.name)}</span>`).join('')} ${pendingFiles.length>4? `<span class="muted">+${pendingFiles.length-4} más</span>`:''}</div>`:''}
-      `;
-    } else {
-      preview.style.display = 'none';
-      preview.innerHTML = '';
-    }
+  function activeCat(){ return hiddenCat?.value || 'contenedor'; }
+  function switchCat(cat){
+    if(!form) return; if(hiddenCat) hiddenCat.value = cat;
+    form.querySelectorAll('.cat-tab')?.forEach(b=> b.classList.toggle('active', b.dataset.cat===cat));
+    form.querySelectorAll('.cat-fields')?.forEach(fs=> fs.style.display = (fs.dataset.cat===cat? 'block':'none'));
+    updatePreview();
   }
-  form.addEventListener('input', updatePreview);
+  catTabs?.forEach(b=> b.addEventListener('click', ()=> switchCat(b.dataset.cat)));
+  function updatePreview(){
+    if(!form) return;
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+    const cat = activeCat();
+    let lines = [];
+    lines.push('<strong>Resumen de carga:</strong>');
+    lines.push(`📍 <b>Origen:</b> ${escapeHtml(data.origen||'-')}`);
+    lines.push(`🎯 <b>Destino:</b> ${escapeHtml(data.destino||'-')}`);
+    if(data.parada) lines.push(`➕ <b>Parada:</b> ${escapeHtml(data.parada||'')}`);
+    if(cat==='contenedor'){
+      lines.push(`📦 <b>Categoría:</b> Contenedor (${escapeHtml(data.containerType||'-')})`);
+      if(data.cantidad) lines.push(`🔢 <b>Cantidad:</b> ${escapeHtml(data.cantidad)}`);
+      if(data.fechaHora) lines.push(`📅 <b>Fecha:</b> ${new Date(data.fechaHora).toLocaleString()}`);
+    } else if(cat==='granel'){
+      lines.push(`📦 <b>Categoría:</b> Granel (${escapeHtml(data.grainType||'-')})`);
+      lines.push(`🌾 <b>Producto:</b> ${escapeHtml(data.product||'-')}`);
+      if(data.cantidad) lines.push(`🔢 <b>Cantidad:</b> ${escapeHtml(data.cantidad)} ${escapeHtml(data.unidad||'')}`);
+      if(data.fechaHora) lines.push(`📅 <b>Carga:</b> ${new Date(data.fechaHora).toLocaleString()}`);
+      if(data.fechaHoraDesc) lines.push(`� <b>Descarga:</b> ${new Date(data.fechaHoraDesc).toLocaleString()}`);
+      if(data.requisitos) lines.push(`🛠️ <b>Req.:</b> ${escapeHtml(data.requisitos)}`);
+      if(data.senasa) lines.push(`✅ <b>SENASA:</b> Sí`);
+    } else if(cat==='general'){
+      lines.push(`📦 <b>Categoría:</b> Carga general`);
+      lines.push(`🚚 <b>Camión completo:</b> ${escapeHtml(data.fullTruck||'-')}`);
+      lines.push(`📦 <b>Producto:</b> ${escapeHtml(data.product||'-')}`);
+      lines.push(`📦 <b>Presentación:</b> ${escapeHtml(data.presentation||'-')}`);
+      if(data.cantidad) lines.push(`🔢 <b>Cantidad:</b> ${escapeHtml(data.cantidad)} ${escapeHtml(data.unidad||'')}`);
+      if(data.fechaHora) lines.push(`📅 <b>Carga:</b> ${new Date(data.fechaHora).toLocaleString()}`);
+      if(data.fechaHoraDesc) lines.push(`📦 <b>Descarga:</b> ${new Date(data.fechaHoraDesc).toLocaleString()}`);
+      if(data.imo) lines.push(`☣️ <b>Peligrosa (IMO):</b> ${escapeHtml(data.imo)}`);
+      if(data.senasa) lines.push(`✅ <b>SENASA:</b> Sí`);
+    }
+    if(data.descripcion) lines.push(`📝 <b>Comentarios:</b> ${escapeHtml(data.descripcion)}`);
+    if(pendingFiles.length){
+      const att = pendingFiles.slice(0,4).map(a=> a.type?.startsWith('image/')? `<img src="${a.preview}" alt="adjunto"/>`:`<span class="file-chip">${escapeHtml(a.name)}</span>`).join('');
+      lines.push(`<div class="attachments">${att}${pendingFiles.length>4? `<span class='muted'>+${pendingFiles.length-4} más</span>`:''}</div>`);
+    }
+    const show = lines.length>2;
+    preview.style.display = show? 'block':'none';
+    preview.innerHTML = show? lines.join('<br>') : '';
+  }
+  form?.addEventListener('input', updatePreview);
   function renderFileCards(){
     if(!filePreviews) return;
     filePreviews.innerHTML = '';
@@ -620,27 +665,44 @@ function initPublishForm(){
   form.addEventListener('submit', (e)=>{
     e.preventDefault();
     if(state.user?.role!=='empresa'){ alert('Ingresá como Empresa.'); return; }
-    const data = Object.fromEntries(new FormData(form).entries());
-    // Normalizar y guardar nuevos campos
-    const load = {
+    const fd = new FormData(form);
+    const data = Object.fromEntries(fd.entries());
+    const cat = hiddenCat?.value || 'contenedor';
+    // Validación básica
+    const requiredCommon = ['origen','destino'];
+    let invalid = [];
+    requiredCommon.forEach(r=>{ if(!data[r]) invalid.push(r); });
+    // Requeridos específicos
+    if(cat==='contenedor'){ ['containerType','cantidad','fechaHora'].forEach(r=>{ if(!data[r]) invalid.push(r); }); }
+    if(cat==='granel'){ ['grainType','product','cantidad','unidad','fechaHora'].forEach(r=>{ if(!data[r]) invalid.push(r); }); }
+    if(cat==='general'){ ['fullTruck','product','presentation','cantidad','unidad','fechaHora','imo'].forEach(r=>{ if(!data[r]) invalid.push(r); }); }
+    if(invalid.length){ alert('Completá todos los campos obligatorios.'); return; }
+    const base = {
+      categoria: cat,
       origen: (data.origen||'').trim(),
       destino: (data.destino||'').trim(),
-      tipo: data.tipo||'',
-      cantidad: data.cantidad? Number(data.cantidad) : null,
-      unidad: data.unidad||'',
-      dimensiones: (data.dimensiones||'').trim(),
-      peso: data.peso? Number(data.peso) : null,
-      volumen: data.volumen? Number(data.volumen) : null,
+      parada: (data.parada||'').trim()||null,
+      descripcion: (data.descripcion||'').trim()||null,
       fechaHora: data.fechaHora || null,
-      descripcion: (data.descripcion||'').trim(),
+      fechaHoraDesc: data.fechaHoraDesc || null,
+      senasa: !!data.senasa || false,
       adjuntos: pendingFiles
     };
-    addLoad(load);
+    let extra = {};
+    if(cat==='contenedor'){
+      extra = { containerType: data.containerType||'', cantidad: data.cantidad? Number(data.cantidad):null };
+    } else if(cat==='granel'){
+      extra = { grainType: data.grainType||'', product: data.product||'', cantidad: data.cantidad? Number(data.cantidad):null, unidad: data.unidad||'', requisitos: data.requisitos||'' };
+    } else if(cat==='general'){
+      extra = { fullTruck: data.fullTruck||'', product: data.product||'', presentation: data.presentation||'', cantidad: data.cantidad? Number(data.cantidad):null, unidad: data.unidad||'', imo: data.imo||'' };
+    }
+    addLoad({ ...base, ...extra });
     form.reset();
     updatePreview();
     // limpiar previews
     pendingFiles = [];
     if(filePreviews){ filePreviews.innerHTML=''; filePreviews.style.display='none'; }
+    switchCat('contenedor');
     alert('¡Publicada! Esperá postulaciones que Sendix moderará.');
     navigate('mis-cargas');
   });
@@ -695,6 +757,7 @@ function renderMyLoadsWithProposals(focus){
     return `<li id="load-${l.id}">
       <div class="row"><strong>${l.origen} ➜ ${l.destino}</strong><span>${new Date(l.createdAt).toLocaleDateString()}</span></div>
       <div class="muted">Tipo: ${l.tipo} · Cant.: ${l.cantidad? `${l.cantidad} ${l.unidad||''}`:'-'} · Dim.: ${l.dimensiones||'-'} · Peso: ${l.peso? l.peso+' kg':'-'} · Vol: ${l.volumen? l.volumen+' m³':'-'} · Fecha: ${l.fechaHora? new Date(l.fechaHora).toLocaleString(): (l.fecha||'-')}</div>
+  <div class="muted">${renderLoadSummary(l)}</div>
       ${l.descripcion? `<div class="muted">📝 ${escapeHtml(l.descripcion)}</div>`:''}
       ${Array.isArray(l.adjuntos)&&l.adjuntos.length? `<div class="attachments small">${l.adjuntos.slice(0,4).map(a=> a.type?.startsWith('image/')? `<img src="${a.preview||''}" alt="adjunto"/>` : `<span class="file-chip">${a.name||'archivo'}</span>`).join('')}${l.adjuntos.length>4? `<span class="muted">+${l.adjuntos.length-4} más</span>`:''}</div>`:''}
       ${approvedBlock ? `<div class="mt"><strong>Envío seleccionado</strong></div>${approvedBlock}` : ''}
@@ -765,7 +828,7 @@ function renderOffers(){
             <strong>${l.origen} ➜ ${l.destino}</strong>
             <span>${new Date(l.createdAt).toLocaleDateString()}</span>
           </div>
-          <div class="muted">Tipo: ${l.tipo} · Cant.: ${l.cantidad? `${l.cantidad} ${l.unidad||''}`:'-'} · Dim.: ${l.dimensiones||'-'} · Peso: ${l.peso? l.peso+' kg':'-'} · Vol: ${l.volumen? l.volumen+' m³':'-'} · Fecha: ${l.fechaHora? new Date(l.fechaHora).toLocaleString(): (l.fecha||'-')} · Empresa: ${l.owner}</div>
+          <div class="muted">${renderLoadSummary(l)} · Empresa: ${l.owner}</div>
           ${l.descripcion? `<div class="muted">📝 ${escapeHtml(l.descripcion)}</div>`:''}
           ${Array.isArray(l.adjuntos)&&l.adjuntos.length? `<div class="attachments small">${l.adjuntos.slice(0,3).map(a=> a.type?.startsWith('image/')? `<img src="${a.preview||''}" alt="adjunto"/>` : `<span class="file-chip">${a.name||'archivo'}</span>`).join('')}${l.adjuntos.length>3? `<span class="muted">+${l.adjuntos.length-3} más</span>`:''}</div>`:''}
           ${formHtml}
@@ -799,7 +862,7 @@ function renderMyProposals(){
     return `<li class="row">
       <div>
         <div><strong>${l?.origen} ➜ ${l?.destino}</strong></div>
-        <div class="muted">Para: ${l?.owner} · ${l?.tipo} · Cant.: ${l?.cantidad? `${l?.cantidad} ${l?.unidad||''}`:'-'} · Dim.: ${l?.dimensiones||'-'} · Peso: ${l?.peso? l?.peso+' kg':'-'} · Vol: ${l?.volumen? l?.volumen+' m³':'-'} · Fecha: ${l?.fechaHora? new Date(l?.fechaHora).toLocaleString(): (l?.fecha||'-')}</div>
+  <div class="muted">Para: ${l?.owner} · ${renderLoadSummary(l)}</div>
       </div>
       <div class="row">
         <span class="badge">${badge}</span>
@@ -822,7 +885,7 @@ function renderShipments(){
         <strong>${l?.origen} ➜ ${l?.destino}</strong>
         <span class="badge">${p.shipStatus||'pendiente'}</span>
       </div>
-      <div class="muted">Cliente: ${l?.owner} · ${l?.tipo} · Cant.: ${l?.cantidad? `${l?.cantidad} ${l?.unidad||''}`:'-'} · Dim.: ${l?.dimensiones||'-'} · Peso: ${l?.peso? l?.peso+' kg':'-'} · Vol: ${l?.volumen? l?.volumen+' m³':'-'} · Fecha: ${l?.fechaHora? new Date(l?.fechaHora).toLocaleString(): (l?.fecha||'-')} · Precio: $${p.price.toLocaleString('es-AR')}</div>
+  <div class="muted">Cliente: ${l?.owner} · ${renderLoadSummary(l)} · Precio: $${p.price.toLocaleString('es-AR')}</div>
       <div class="row">
         <select data-ship="${p.id}">
           ${SHIP_STEPS.map(s=>`<option value="${s}" ${s===(p.shipStatus||'pendiente')?'selected':''}>${s}</option>`).join('')}

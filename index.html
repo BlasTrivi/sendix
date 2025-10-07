@@ -237,48 +237,141 @@
         <div class="publish-box shadow-lg">
           <h2 class="publish-title">Publicar nueva carga</h2>
           <form id="publish-form" class="form publish-form" autocomplete="off">
+            <div class="publish-category-tabs" style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap">
+              <button type="button" class="btn cat-tab active" data-cat="contenedor">Contenedor</button>
+              <button type="button" class="btn cat-tab" data-cat="granel">Granel</button>
+              <button type="button" class="btn cat-tab" data-cat="general">Carga general</button>
+            </div>
+            <input type="hidden" name="categoria" id="publish-categoria" value="contenedor" />
             <label><span>📍</span> Origen
-              <input name="origen" id="input-origen" placeholder="Ciudad, Provincia/Estado, País" required autocomplete="off" />
+              <input name="origen" placeholder="Ciudad, Provincia/Estado, País" required autocomplete="off" />
             </label>
             <label><span>🎯</span> Destino
-              <input name="destino" id="input-destino" placeholder="Ciudad, Provincia/Estado, País" required autocomplete="off" />
+              <input name="destino" placeholder="Ciudad, Provincia/Estado, País" required autocomplete="off" />
             </label>
-            <label><span>📦</span> Tipo de carga
-              <select name="tipo" required>
-                <option value="Contenedor">Contenedor</option>
-                <option value="Granel">Granel</option>
-                <option value="Carga general">Carga General</option>
-                <option value="Flete">Flete</option>
-              </select>
+            <label><span>➕</span> Parada intermedia (opcional)
+              <input name="parada" placeholder="Ciudad / Punto" autocomplete="off" />
             </label>
-            <div class="row" style="gap:8px">
-              <label style="flex:1"><span>🔢</span> Cantidad
-                <input name="cantidad" type="number" min="0" step="1" placeholder="Ej: 10" />
-              </label>
-              <label style="flex:1"><span>📦</span> Unidad
-                <select name="unidad">
-                  <option value="palets">Palets</option>
-                  <option value="bultos">Bultos</option>
+
+            <!-- FIELDS: CONTENEDOR -->
+            <fieldset class="cat-fields" data-cat="contenedor" style="border:1px dashed var(--border); padding:12px; border-radius:10px;">
+              <legend style="padding:0 6px">Datos Contenedor</legend>
+              <label>Tipo de contenedor
+                <select name="containerType" data-required="true">
+                  <option value="20'">20'</option>
+                  <option value="40'">40'</option>
+                  <option value="40'HC">40'HC</option>
+                  <option value="Flexitank">Flexitank</option>
+                  <option value="20' OT">20' OT</option>
+                  <option value="40' OT">40' OT</option>
+                  <option value="otro">Otro</option>
                 </select>
               </label>
-            </div>
-            <label><span>�</span> Dimensiones
-              <input name="dimensiones" placeholder="Ej: 120 x 80 x 150 cm (largo x ancho x alto)" />
-            </label>
-            <div class="row" style="gap:8px">
-              <label style="flex:1"><span>⚖️</span> Peso total (kg)
-                <input name="peso" type="number" step="0.01" min="0" placeholder="Ej: 800" />
+              <label>Cantidad
+                <input type="number" name="cantidad" min="1" step="1" placeholder="Ej: 2" data-required="true" />
               </label>
-              <label style="flex:1"><span>🧪</span> Volumen (m³)
-                <input name="volumen" type="number" step="0.01" min="0" placeholder="Ej: 20" />
+              <label>Fecha y hora
+                <input type="datetime-local" name="fechaHora" data-required="true" />
               </label>
-            </div>
-            <label><span>📅</span> Fecha y hora
-              <input type="datetime-local" name="fechaHora" required/>
-            </label>
-            <label><span>📝</span> Descripción / Comentarios
-              <textarea name="descripcion" rows="3" placeholder="Detalles de la carga, requerimientos, observaciones…"></textarea>
-            </label>
+              <label>Descripción / Comentarios
+                <textarea name="descripcion" rows="2" placeholder="Observaciones, detalles…"></textarea>
+              </label>
+            </fieldset>
+
+            <!-- FIELDS: GRANEL -->
+            <fieldset class="cat-fields" data-cat="granel" style="display:none; border:1px dashed var(--border); padding:12px; border-radius:10px;">
+              <legend style="padding:0 6px">Datos Granel</legend>
+              <label>Tipo de granel
+                <select name="grainType" data-required="true">
+                  <option value="Sólido">Sólido</option>
+                  <option value="Líquido">Líquido</option>
+                  <option value="Polvo">Polvo</option>
+                  <option value="Otro">Otro</option>
+                </select>
+              </label>
+              <label>Producto
+                <input name="product" placeholder="Ej: Maíz" data-required="true" />
+              </label>
+              <label>Cantidad
+                <input type="number" name="cantidad" min="0" step="0.01" placeholder="Ej: 25" data-required="true" />
+              </label>
+              <label>Unidad
+                <select name="unidad" data-required="true">
+                  <option value="TN">TN</option>
+                  <option value="m3">m3</option>
+                  <option value="litros">litros</option>
+                </select>
+              </label>
+              <label>Fecha y hora de carga
+                <input type="datetime-local" name="fechaHora" data-required="true" />
+              </label>
+              <label>Fecha y hora de descarga (estimada)
+                <input type="datetime-local" name="fechaHoraDesc" />
+              </label>
+              <label>Requisitos especiales
+                <textarea name="requisitos" rows="2" placeholder="Camión batea, cisterna, habilitaciones…"></textarea>
+              </label>
+              <label class="row" style="align-items:center; gap:8px">
+                <input type="checkbox" name="senasa" /> Habilitación SENASA
+              </label>
+              <label>Descripción / Comentarios
+                <textarea name="descripcion" rows="2" placeholder="Observaciones…"></textarea>
+              </label>
+            </fieldset>
+
+            <!-- FIELDS: CARGA GENERAL -->
+            <fieldset class="cat-fields" data-cat="general" style="display:none; border:1px dashed var(--border); padding:12px; border-radius:10px;">
+              <legend style="padding:0 6px">Datos Carga General</legend>
+              <label>¿Camión completo?
+                <select name="fullTruck" data-required="true">
+                  <option value="si">Sí</option>
+                  <option value="no">No</option>
+                  <option value="no_sabe">No sabe</option>
+                </select>
+              </label>
+              <label>Producto
+                <input name="product" placeholder="Ej: Electrodomésticos" data-required="true" />
+              </label>
+              <label>Presentación
+                <select name="presentation" data-required="true">
+                  <option value="pallet">Pallet</option>
+                  <option value="big bag">Big bag</option>
+                  <option value="bulto suelto">Bulto suelto</option>
+                  <option value="otro">Otro</option>
+                </select>
+              </label>
+              <label>Cantidad
+                <input type="number" name="cantidad" min="0" step="1" placeholder="Ej: 10" data-required="true" />
+              </label>
+              <label>Unidad
+                <select name="unidad" data-required="true">
+                  <option value="palets">Palets</option>
+                  <option value="big bags">Big bags</option>
+                  <option value="bultos">Bultos</option>
+                  <option value="unidades">Unidades</option>
+                </select>
+              </label>
+              <label>Fecha y hora de carga
+                <input type="datetime-local" name="fechaHora" data-required="true" />
+              </label>
+              <label>Fecha y hora de descarga (estimada)
+                <input type="datetime-local" name="fechaHoraDesc" />
+              </label>
+              <label>¿Carga peligrosa (IMO)?
+                <select name="imo" data-required="true">
+                  <option value="no">No</option>
+                  <option value="si">Sí</option>
+                  <option value="no_sabe">No sabe</option>
+                </select>
+              </label>
+              <label class="row" style="align-items:center; gap:8px">
+                <input type="checkbox" name="senasa" /> Habilitación SENASA
+              </label>
+              <label>Descripción / Comentarios
+                <textarea name="descripcion" rows="2" placeholder="Observaciones…"></textarea>
+              </label>
+            </fieldset>
+
             <div class="file-uploader" id="file-uploader">
               <div class="file-drop" id="file-drop" tabindex="0" aria-label="Adjuntar archivos">
                 <div class="file-drop-inner">
